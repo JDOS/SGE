@@ -1,0 +1,182 @@
+{% extends "sge/base.html" %}
+{% load static %}
+
+{% block title %}Painel de Análise | SGE PRO{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="{% static 'css/painel.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="painel">
+
+  <header class="painel__cab">
+    <div>
+      <h1>Painel de análise integrada</h1>
+      <p>Rede municipal de ensino · simulação</p>
+    </div>
+    <span class="painel__aviso">Dados simulados para demonstração</span>
+  </header>
+
+  <!-- ===== Filtros ===== -->
+  <form class="filtros" id="filtros" onsubmit="return false" aria-label="Filtros do painel">
+    <label>Escola
+      <select id="fEscola">
+        <option value="">Todas as escolas</option>
+      </select>
+    </label>
+    <label>Categoria
+      <select id="fCategoria">
+        <option value="">Todas as categorias</option>
+      </select>
+    </label>
+    <label>Bairro
+      <select id="fBairro">
+        <option value="">Todos os bairros</option>
+      </select>
+    </label>
+    <fieldset class="segmento" id="fFaixa">
+      <legend>Faixa de desempenho</legend>
+      <button type="button" data-faixa="" aria-pressed="true">Todas</button>
+      <button type="button" data-faixa="Mínimo" aria-pressed="false">Mínimo</button>
+      <button type="button" data-faixa="Médio" aria-pressed="false">Médio</button>
+      <button type="button" data-faixa="Elevado" aria-pressed="false">Elevado</button>
+    </fieldset>
+    <button type="button" class="filtros__limpar" id="limpar" hidden>
+      <span class="material-icons">close</span>Limpar filtros
+    </button>
+  </form>
+
+  <p class="painel__resumo" id="resumo" aria-live="polite"></p>
+
+  <!-- ===== Indicadores ===== -->
+  <section class="kpis" aria-label="Indicadores">
+    <div class="kpi"><span class="kpi__rot">Escolas avaliadas</span><b id="kEscolas"></b><small id="kEscolasSub"></small></div>
+    <div class="kpi"><span class="kpi__rot">Não conformidades abertas</span><b id="kNc"></b><small id="kNcSub">abertas ou em andamento</small></div>
+    <div class="kpi"><span class="kpi__rot">NC de acessibilidade</span><b id="kAcess"></b><small>NBR 9050 / LBI</small></div>
+    <div class="kpi"><span class="kpi__rot" id="kIndiceRot">Índice médio da rede</span><b id="kIndice"></b><small id="kIndiceSub"></small></div>
+    <div class="kpi"><span class="kpi__rot">Custo estimado de recuperação</span><b id="kCusto"></b><small id="kCustoSub"></small></div>
+  </section>
+
+  <!-- ===== Ficha da escola (aparece ao escolher uma escola) ===== -->
+  <section class="card ficha-escola" id="ficha" hidden aria-label="Dados da escola selecionada">
+    <div class="ficha-escola__topo">
+      <div>
+        <h2 id="fNome"></h2>
+        <p id="fSub"></p>
+      </div>
+      <button type="button" class="btn-voltar" id="voltarRede"><span class="material-icons">arrow_back</span>Ver toda a rede</button>
+    </div>
+    <div class="ficha-escola__dados">
+      <div class="medidor">
+        <span>Índice de desempenho</span>
+        <b id="fIndice"></b>
+        <div class="medidor__barra" aria-hidden="true">
+          <i class="medidor__min"></i><i class="medidor__med"></i><i class="medidor__alto"></i>
+          <span class="medidor__marca" id="fMarca"></span>
+        </div>
+        <small><span>0</span><span>0,50</span><span>0,75</span><span>1</span></small>
+      </div>
+      <dl class="ficha-escola__lista" id="fLista"></dl>
+    </div>
+
+    <div class="ficha-escola__ncs">
+      <div class="ficha-escola__ncs-cab">
+        <h3>Não conformidades da escola</h3>
+        <div class="segmento segmento--peq" id="fStatus" role="group" aria-label="Filtrar por status">
+          <button type="button" data-status="abertas" aria-pressed="true">Abertas</button>
+          <button type="button" data-status="Resolvida" aria-pressed="false">Resolvidas</button>
+          <button type="button" data-status="" aria-pressed="false">Todas</button>
+        </div>
+      </div>
+      <div class="tabela-rolagem tabela-rolagem--alta">
+        <table class="tabela" id="tNcs">
+          <thead><tr><th>Código</th><th>Categoria</th><th>Serviço</th><th>Local</th><th>Gravidade</th><th>Status</th><th>Registro</th><th class="num">Custo</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Gráficos ===== -->
+  <div class="grade grade--3">
+    <section class="card">
+      <h2>Tipo de não conformidade</h2>
+      <p class="card__sub">NC abertas por categoria · clique para filtrar</p>
+      <div class="grafico grafico--alto"><canvas id="gCategorias" aria-label="NC abertas por categoria"></canvas></div>
+    </section>
+
+    <section class="card">
+      <h2>Mapa das escolas</h2>
+      <p class="card__sub">Posição ilustrativa · cor = faixa · tamanho = NC abertas</p>
+      <div id="mapa" class="mapa"></div>
+      <div class="legenda">
+        <span><i style="background:var(--c-min)"></i>Mínimo</span>
+        <span><i style="background:var(--c-med)"></i>Médio</span>
+        <span><i style="background:var(--c-alto)"></i>Elevado</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Situação da rede</h2>
+      <p class="card__sub">Faixa das escolas, gravidade e status das NC</p>
+      <div class="rosca"><div class="rosca__graf"><canvas id="gFaixa" aria-label="Escolas por faixa"></canvas></div><div class="rosca__leg"><h4>Faixa de desempenho</h4><ul id="lFaixa"></ul></div></div>
+      <div class="rosca"><div class="rosca__graf"><canvas id="gGravidade" aria-label="NC abertas por gravidade"></canvas></div><div class="rosca__leg"><h4>Gravidade (NC abertas)</h4><ul id="lGravidade"></ul></div></div>
+      <div class="rosca"><div class="rosca__graf"><canvas id="gStatus" aria-label="NC por status"></canvas></div><div class="rosca__leg"><h4>Status (todas as NC)</h4><ul id="lStatus"></ul></div></div>
+    </section>
+  </div>
+
+  <div class="grade grade--2">
+    <section class="card">
+      <h2 id="tTop">NC abertas por escola (top 10)</h2>
+      <p class="card__sub" id="tTopSub">Onde estão mais problemas acumulados · clique para ver a escola</p>
+      <div class="grafico grafico--alto"><canvas id="gTop" aria-label="NC abertas por escola"></canvas></div>
+    </section>
+    <section class="card">
+      <h2>Custo estimado por categoria</h2>
+      <p class="card__sub">NC abertas, em reais · clique para filtrar</p>
+      <div class="grafico grafico--alto"><canvas id="gCusto" aria-label="Custo estimado por categoria"></canvas></div>
+    </section>
+  </div>
+
+  <!-- ===== Ranking ===== -->
+  <section class="card">
+    <h2>Ranking de prioridade</h2>
+    <p class="card__sub">
+      Índice de prioridade = (1 − índice de desempenho) × 3 + 0,08 por NC de gravidade alta + 0,03 por aluno com deficiência.
+      Clique no título de uma coluna para ordenar e numa escola para ver os dados dela.
+    </p>
+    <div class="tabela-rolagem">
+      <table class="tabela tabela--ranking" id="tRanking">
+        <thead>
+          <tr>
+            <th><button type="button" data-ordem="pos">#</button></th>
+            <th><button type="button" data-ordem="id">Id</button></th>
+            <th><button type="button" data-ordem="nome">Escola</button></th>
+            <th><button type="button" data-ordem="bairro">Bairro</button></th>
+            <th class="num"><button type="button" data-ordem="indice">Índice</button></th>
+            <th><button type="button" data-ordem="indice">Faixa</button></th>
+            <th class="num"><button type="button" data-ordem="nc">NC abertas</button></th>
+            <th class="num"><button type="button" data-ordem="acess">Acessib.</button></th>
+            <th class="num"><button type="button" data-ordem="alunos">Alunos</button></th>
+            <th class="num"><button type="button" data-ordem="prioridade">Prioridade</button></th>
+            <th class="num"><button type="button" data-ordem="custo">Custo de recuperação</button></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="painel__nota">Escolas marcadas com * usam o índice real das escolas F a M da tese InfraEs (Machado, 2023); demais dados simulados.</p>
+</div>
+
+{{ painel|json_script:"dados-painel" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="{% static 'js/painel.js' %}"></script>
+{% endblock %}

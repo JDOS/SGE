@@ -17,6 +17,7 @@
   {% url 'home' as home_url %}
   {% url 'pesquisa_escolas' as pesquisa_url %}
   {% url 'metodologia' as metodologia_url %}
+  {% url 'painel' as painel_url %}
 
   <header class="topbar">
     <div class="topbar__esq">
@@ -39,7 +40,7 @@
   <nav class="menu-lateral" id="menuLateral" aria-label="Menu principal">
     <ul>
       <li><a href="{{ home_url|default:'/' }}"><span class="material-icons">home</span>Inicial</a></li>
-      <li><a href="#"><span class="material-icons">dashboard</span>Painel de Análise</a></li>
+      <li><a href="{{ painel_url|default:'#' }}"><span class="material-icons">dashboard</span>Painel de Análise</a></li>
       <li><a href="{{ pesquisa_url|default:'#' }}"><span class="material-icons">search</span>Pesquisa de Escolas</a></li>
       <li><a href="{{ metodologia_url|default:'#' }}"><span class="material-icons">help</span>Metodologia</a></li>
       <li><a href="{{ home_url|default:'/' }}#produtos"><span class="material-icons">folder</span>Produtos</a></li>

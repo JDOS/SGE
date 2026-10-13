@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from .painel_dados import gerar_painel
 
 from .models import Escola
 
@@ -14,6 +15,9 @@ ETAPAS = {
     "fund2": ("fundamental_2", "Fundamental II"),
     "eja": ("eja", "EJA"),
 }
+
+def painel(request):
+    return render(request, "sge/painel.html", {"painel": gerar_painel()})
 
 
 def metodologia(request):
