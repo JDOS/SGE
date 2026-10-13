@@ -1,0 +1,228 @@
+{% extends "sge/base.html" %}
+{% load static %}
+
+{% block content %}
+<!-- ================= HERO ================= -->
+<section class="hero" id="topo">
+  <nav class="hero__nav" aria-label="Seções">
+    <a href="#objetivos">OBJETIVOS</a>
+    <a href="#metodologia">METODOLOGIA</a>
+    <a href="#produtos">PRODUTOS</a>
+    <a href="#contato">CONTATO</a>
+  </nav>
+  <h1 class="hero__titulo">SGE<span>PRO</span></h1>
+  <p class="hero__sub">Sistema de Gestão de Escolas</p>
+  <p class="hero__autor">Diagnóstico, ranqueamento e orçamento da infraestrutura escolar com base no método SC-BPE</p>
+</section>
+
+<!-- ================= OBJETIVOS ================= -->
+<section class="secao" id="objetivos">
+  <h2 class="faixa">OBJETIVOS</h2>
+  <div class="container">
+    <p class="texto-intro">
+      Pesquisas recentes relacionam o desempenho da edificação escolar ao desempenho acadêmico dos alunos:
+      <strong>a escola influencia o aprendizado</strong>. No Brasil, porém, não existe norma própria para avaliar a
+      infraestrutura de escolas da educação básica, e os recursos de manutenção são limitados. Sem critérios
+      objetivos, a escolha de onde intervir primeiro fica sem base técnica. Neste contexto, a equipe da
+      Universidade Federal do Paraná (UFPR) desenvolveu o SGE, que aplica o método SC-BPE, validado por
+      especialistas e aplicado por inspeção visual, sem equipamentos sofisticados, com o intuito de:
+    </p>
+
+    <ul class="objetivos">
+      <li><i class="bi bi-clipboard-check"></i><b>Diagnóstico</b>
+        <span>Avaliar cada escola, com o desempenho em cada critério e o registro das não conformidades encontradas.</span></li>
+      <li><i class="bi bi-bar-chart-line"></i><b>Ranqueamento</b>
+        <span>Ordenar as escolas da rede pelo índice de desempenho frente ao nível esperado.</span></li>
+      <li><i class="bi bi-cash-coin"></i><b>Orçamento estimativo</b>
+        <span>Estimar o custo para corrigir as não conformidades, por escola e por categoria.</span></li>
+    </ul>
+
+    <div class="numeros" role="list">
+      <div role="listitem"><b>71</b><span>subcritérios de avaliação</span></div>
+      <div role="listitem"><b>12</b><span>categorias em 2 dimensões</span></div>
+      <div role="listitem"><b>6</b><span>especialistas no Delphi</span></div>
+      <div role="listitem"><b>8</b><span>escolas na aplicação piloto</span></div>
+    </div>
+    <p class="fonte">Base: Machado &amp; Santos (2024), método SC-BPE · Tese UFPR (2022)</p>
+  </div>
+</section>
+
+<!-- ================= METODOLOGIA ================= -->
+<section class="secao secao--alt" id="metodologia">
+  <h2 class="faixa">METODOLOGIA</h2>
+  <div class="container">
+
+    <article class="etapa">
+      <div class="etapa__img" style="background-image:url('{% static 'img/vistoria_1.jpg' %}')" role="img" aria-label="Parede com fissuras registrada em vistoria"></div>
+      <div class="etapa__corpo">
+        <h3 class="etapa__titulo">Identificação dos critérios</h3>
+        <ul class="itens">
+          <li><i class="bi bi-book"></i><div>Revisão da literatura e das diretrizes do MEC;</div></li>
+          <li><i class="bi bi-database"></i><div>Uso do Censo Escolar, SAEB e normas internacionais;</div></li>
+          <li><i class="bi bi-diagram-3"></i><div>71 subcritérios organizados em 12 categorias;
+            <small>Dimensão 1 – Edificação (9 categorias, 47 subcritérios) · Dimensão 2 – Operação (3 categorias, 24 subcritérios)</small></div></li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="etapa etapa--inv">
+      <div class="etapa__img" style="background-image:url('{% static 'img/checklist_seguranca.jpg' %}')" role="img" aria-label="Protocolo de segurança da escola"></div>
+      <div class="etapa__corpo">
+        <h3 class="etapa__titulo">Análise e ponderação</h3>
+        <ul class="itens">
+          <li><i class="bi bi-people"></i><div>Método Delphi com 6 especialistas em 3 rodadas;</div></li>
+          <li><i class="bi bi-123"></i><div>Notas de 0 a 4 por critério;
+            <small>peso = nota Delphi ÷ 4 · consenso pela razão de validade de conteúdo (CVR ≥ 0,29)</small></div></li>
+          <li><i class="bi bi-star"></i><div>Peso máximo para coberturas, rotas de fuga, sinalização de incêndio, salas de aula, refeitório e sanitários;</div></li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="etapa">
+      <div class="etapa__img" style="background-image:url('{% static 'img/checklist_conservacao.jpg' %}')" role="img" aria-label="Checklist do estado de conservação"></div>
+      <div class="etapa__corpo">
+        <h3 class="etapa__titulo">Inspeção e cadastro</h3>
+        <ul class="itens">
+          <li><i class="bi bi-search"></i><div>Vistoria visual com o Quadro de Verificação;
+            <small>cada critério: atende, não atende ou não se aplica</small></div></li>
+          <li><i class="bi bi-camera"></i><div>Registro das não conformidades com foto, local e critério;</div></li>
+          <li><i class="bi bi-file-earmark-text"></i><div>Relatório fotográfico de cadastro e checklist do estado de conservação;</div></li>
+          <li><i class="bi bi-arrow-repeat"></i><div>Atualização contínua pelos gestores escolares, validada por vistorias técnicas periódicas;</div></li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="etapa etapa--inv">
+      <div class="etapa__img" style="background-image:url('{% static 'img/vistoria_2.jpg' %}')" role="img" aria-label="Descolamento de argamassa em edificação escolar"></div>
+      <div class="etapa__corpo">
+        <h3 class="etapa__titulo">Modelagem matemática</h3>
+        <p class="formula">Índice = Σ (nota × peso) ÷ nº de critérios aplicáveis</p>
+        <ul class="itens">
+          <li><i class="bi bi-check2-square"></i><div>Soma ponderada simples (SAW);
+            <small>nota 1 quando o critério existe, funciona e atende à finalidade; 0 quando não atende</small></div></li>
+          <li><i class="bi bi-slash-circle"></i><div>Critérios que não se aplicam à escola saem da conta;</div></li>
+          <li><i class="bi bi-percent"></i><div>Resultado entre 0 e 100%, comparável entre escolas;</div></li>
+        </ul>
+        <div class="faixas">
+          <span class="f-min">Mínimo: abaixo de 50%</span>
+          <span class="f-med">Médio: 50% a 74%</span>
+          <span class="f-alto">Alto: 75% ou mais</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="etapa">
+      <div class="etapa__img" style="background-image:url('{% static 'img/relatorio_fotografico.jpg' %}')" role="img" aria-label="Relatório fotográfico de cadastro"></div>
+      <div class="etapa__corpo">
+        <h3 class="etapa__titulo">Orçamento</h3>
+        <ul class="itens">
+          <li><i class="bi bi-calculator"></i><div>Estimativa global pelo índice;
+            <small>necessidade de manutenção = (1 − índice) × valor de uma escola nova (Albader e Kandil, 2013)</small></div></li>
+          <li><i class="bi bi-tools"></i><div>Detalhamento por não conformidade;
+            <small>custo = quantidade × custo unitário de referência (SINAPI ou tabela da prefeitura)</small></div></li>
+          <li><i class="bi bi-flag"></i><div>Priorização das intervenções;
+            <small>cruzar custo e índice mostra onde cada real gera mais melhoria</small></div></li>
+        </ul>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ================= PRODUTOS ================= -->
+<section class="secao" id="produtos">
+  <h2 class="faixa">PRODUTOS</h2>
+  <div class="container">
+    <div class="produtos">
+
+      <article class="produto">
+        <h3 class="produto__titulo">Diagnóstico</h3>
+        <div class="produto__img" style="background-image:url('{% static 'img/checklist_conservacao.jpg' %}')" role="img" aria-label="Quadro de verificação"></div>
+        <div class="produto__corpo">
+          <ul class="itens">
+            <li><i class="bi bi-building-check"></i><div>Índice por escola<small>nota por escola, dimensão e categoria.</small></div></li>
+            <li><i class="bi bi-exclamation-triangle"></i><div>Não conformidades<small>cadastro com fotos e localização.</small></div></li>
+            <li><i class="bi bi-layers"></i><div>Edificação e operação<small>análise das dimensões juntas ou separadamente.</small></div></li>
+          </ul>
+          <a class="btn-detalhes" href="#">DETALHES</a>
+        </div>
+      </article>
+
+      <article class="produto">
+        <h3 class="produto__titulo">Ranqueamento</h3>
+        <div class="produto__img" style="background-image:url('{% static 'img/prototipo_tela.jpg' %}')" role="img" aria-label="Protótipo do sistema"></div>
+        <div class="produto__corpo">
+          <ul class="itens">
+            <li><i class="bi bi-sort-down"></i><div>Panorama da rede<small>escolas ordenadas pelo índice SC-BPE.</small></div></li>
+            <li><i class="bi bi-speedometer2"></i><div>Faixa de desempenho<small>mínimo, médio e alto sinalizam a urgência.</small></div></li>
+            <li><i class="bi bi-people"></i><div>Critérios de desempate<small>custo estimado e número de alunos atendidos.</small></div></li>
+          </ul>
+          <a class="btn-detalhes" href="#">DETALHES</a>
+        </div>
+      </article>
+
+      <article class="produto">
+        <h3 class="produto__titulo">Orçamento estimativo</h3>
+        <div class="produto__img" style="background-image:url('{% static 'img/relatorio_fotografico.jpg' %}')" role="img" aria-label="Relatório de cadastro"></div>
+        <div class="produto__corpo">
+          <ul class="itens">
+            <li><i class="bi bi-cash-stack"></i><div>Custo por não conformidade<small>ligada a um serviço de correção.</small></div></li>
+            <li><i class="bi bi-pie-chart"></i><div>Totais consolidados<small>por escola, por categoria e por rede.</small></div></li>
+            <li><i class="bi bi-calendar-check"></i><div>Plano de manutenção<small>prioridades de manutenção e conservação.</small></div></li>
+          </ul>
+          <a class="btn-detalhes" href="#">DETALHES</a>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="modulos">
+      <img src="{% static 'img/prototipo_tela.jpg' %}" alt="Protótipo da tela inicial do Sistema de Gestão de Escolas">
+      <div>
+        <h3>Módulos do sistema</h3>
+        <ul class="itens">
+          <li><i class="bi bi-exclamation-triangle"></i><div>Não conformidades<small>cadastro com fotos e localização</small></div></li>
+          <li><i class="bi bi-graph-up"></i><div>Índice de performance<small>nota por escola, dimensão e categoria</small></div></li>
+          <li><i class="bi bi-shield-check"></i><div>Segurança, acessibilidade e conforto<small>consulta por tema</small></div></li>
+          <li><i class="bi bi-clock-history"></i><div>Histórico e relatórios<small>evolução e documentos de vistoria</small></div></li>
+          <li><i class="bi bi-mortarboard"></i><div>Araucarinho<small>educação e conscientização dos alunos</small></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CRONOGRAMA ================= -->
+<section class="secao secao--alt" id="cronograma">
+  <h2 class="faixa">CRONOGRAMA – 12 MESES</h2>
+  <div class="container frentes">
+    <div class="frente"><h4>Inspeção das unidades de ensino</h4>
+      <ol><li>Metodologia de inspeção</li><li>Treinamento da equipe</li><li>Inspeção das unidades</li></ol></div>
+    <div class="frente"><h4>Metodologia de avaliação</h4>
+      <ol><li>Desenvolvimento</li><li>Aplicação nas escolas</li><li>Validação</li></ol></div>
+    <div class="frente"><h4>Sistema de gestão (SGE)</h4>
+      <ol><li>Prototipagem</li><li>Programa computacional</li><li>Cadastro do banco de dados</li><li>Capacitação SMED Araucária</li></ol></div>
+    <div class="frente"><h4>Educação e conscientização</h4>
+      <ol><li>Estruturação do programa</li><li>Material didático</li><li>Aplicação das atividades</li></ol></div>
+  </div>
+</section>
+
+<!-- ================= CONTATO ================= -->
+<footer class="rodape" id="contato">
+  <div class="rodape__grid">
+    <img src="{% static 'img/logo_ufpr.png' %}" alt="Universidade Federal do Paraná">
+    <div>
+      <h4>Coordenação</h4>
+      <p>Mauro Lacerda Santos Filho, PhD</p>
+      <p>Universidade Federal do Paraná</p>
+      <p>Curitiba – PR</p>
+    </div>
+    <div>
+      <h4>Contato</h4>
+      <p><i class="bi bi-envelope"></i> {{ contato_email|default:"email@ufpr.br" }}</p>
+      <p><i class="bi bi-telephone"></i> {{ contato_telefone|default:"(41) 0000-0000" }}</p>
+    </div>
+  </div>
+  <p class="rodape__base">SGE PRO – Sistema de Gestão de Escolas · baseado no método SC-BPE (Machado &amp; Santos, 2024)</p>
+</footer>
+{% endblock %}

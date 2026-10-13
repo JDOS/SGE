@@ -1,0 +1,24 @@
+{% extends "admin/login.html" %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  .login #header,
+  .login #branding,
+  .login #site-name {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+  .login #site-name a {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+  .login #site-name img.logo {
+    margin: 0 auto 10px !important;
+  }
+</style>
+{% endblock %}
