@@ -1,0 +1,127 @@
+{% load static %}
+<!-- ================= METODOLOGIA ================= -->
+<section id="metodologia" class="metodologia">
+
+  <!-- faixa com foto, como no SIGPRO -->
+  <div class="banner-secao" style="background-image:url('{% static 'img/hero_escola.jpg' %}')">
+    <h2>METODOLOGIA</h2>
+  </div>
+
+  <div class="secao secao--alt">
+    <div class="container">
+
+      <p class="texto-intro">
+        O SGE transforma a vistoria das escolas em informação para decidir <strong>onde e quando investir em
+        manutenção</strong>. A metodologia foi desenvolvida na Universidade Federal do Paraná (UFPR), com base na
+        tese InfraEs (Machado, 2023), que definiu e testou critérios de avaliação em escolas municipais da
+        região metropolitana de Curitiba.
+      </p>
+
+      <figure class="fluxo" style="margin-bottom:40px">
+        <img src="{% static 'img/metodologia_etapas.jpg' %}"
+             alt="Como o SGE avalia as escolas, em 6 etapas: 1 Vistoria, 2 Cadastro, 3 Índice, 4 Ranking, 5 Orçamento e 6 Plano">
+      </figure>
+
+      <!-- 1. Vistoria -->
+      <article class="etapa">
+        <div class="etapa__img" style="background-image:url('{% static 'img/checklist_conservacao.jpg' %}')" role="img" aria-label="Ficha de campo da vistoria"></div>
+        <div class="etapa__corpo">
+          <h3 class="etapa__titulo"><span class="num num--metodo">1</span>Vistoria</h3>
+          <ul class="itens">
+            <li><i class="bi bi-person-walking"></i><div>Técnico percorre a escola com a ficha de campo;</div></li>
+            <li><i class="bi bi-list-check"></i><div>Verificação de 71 critérios;
+              <small>cobertura, paredes, instalações, segurança contra incêndio, conforto e segurança</small></div></li>
+            <li><i class="bi bi-universal-access"></i><div>Seção específica de acessibilidade;
+              <small>conforme a NBR 9050</small></div></li>
+            <li><i class="bi bi-eye"></i><div>Inspeção visual, sem equipamentos especiais;</div></li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- 2. Cadastro -->
+      <article class="etapa etapa--inv">
+        <div class="etapa__img" style="background-image:url('{% static 'img/vistoria_2.jpg' %}')" role="img" aria-label="Não conformidade registrada em vistoria"></div>
+        <div class="etapa__corpo">
+          <h3 class="etapa__titulo"><span class="num num--metodo">2</span>Cadastro</h3>
+          <ul class="itens">
+            <li><i class="bi bi-exclamation-triangle"></i><div>Registro de cada problema encontrado no sistema;
+              <small>chamado de não conformidade</small></div></li>
+            <li><i class="bi bi-camera"></i><div>Foto e localização do problema;</div></li>
+            <li><i class="bi bi-thermometer-half"></i><div>Classificação da gravidade;
+              <span class="chips">
+                <span class="chip chip--alta">alta</span>
+                <span class="chip chip--media">média</span>
+                <span class="chip chip--baixa">baixa</span>
+              </span></div></li>
+            <li><i class="bi bi-tools"></i><div>Indicação do serviço necessário para a correção;</div></li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- 3. Índice de desempenho -->
+      <article class="etapa">
+        <div class="etapa__img" style="background-image:url('{% static 'img/checklist_seguranca.jpg' %}')" role="img" aria-label="Quadro de verificação com os critérios avaliados"></div>
+        <div class="etapa__corpo">
+          <h3 class="etapa__titulo"><span class="num num--metodo">3</span>Índice de desempenho</h3>
+          <ul class="itens">
+            <li><i class="bi bi-calculator"></i><div>Cálculo automático da nota de cada escola;
+              <small>de 0 a 100%</small></div></li>
+            <li><i class="bi bi-people"></i><div>Pesos diferentes para cada critério;
+              <small>definidos por especialistas em manutenção de escolas</small></div></li>
+            <li><i class="bi bi-star"></i><div>Maior peso para os itens mais críticos;
+              <small>cobertura, rotas de fuga, salas de aula e banheiros</small></div></li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- 4. Ranking -->
+      <article class="etapa etapa--inv">
+        <div class="etapa__img" style="background-image:url('{% static 'img/ranqueamento.jpg' %}')" role="img" aria-label="Tela do sistema de gestão de escolas"></div>
+        <div class="etapa__corpo">
+          <h3 class="etapa__titulo"><span class="num num--gestao">4</span>Ranking</h3>
+          <ul class="itens">
+            <li><i class="bi bi-sort-down"></i><div>Ordenação das escolas pela nota;</div></li>
+            <li><i class="bi bi-speedometer2"></i><div>Classificação em três faixas;
+              <span class="faixas">
+                <span class="f-min">Mínimo: abaixo de 50%</span>
+                <span class="f-med">Médio: 50% a 74%</span>
+                <span class="f-alto">Elevado: 75% ou mais</span>
+              </span></div></li>
+            <li><i class="bi bi-flag"></i><div>Visão rápida das escolas que precisam de atenção primeiro;</div></li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- 5. Orçamento estimativo -->
+      <article class="etapa">
+      <div class="etapa__img" style="background-image:url('{% static 'img/orcamento_descricao.jpeg' %}'); background-size:contain; background-color:#fff; background-origin:content-box; padding:24px;" role="img" aria-label="Fluxo do orçamento estimativo"></div>
+        <div class="etapa__corpo">
+          <h3 class="etapa__titulo"><span class="num num--gestao">5</span>Orçamento estimativo</h3>
+          <ul class="itens">
+            <li><i class="bi bi-cash-coin"></i><div>Estimativa do custo de correção;
+              <small>a partir das não conformidades cadastradas</small></div></li>
+            <li><i class="bi bi-building"></i><div>Custo por escola;</div></li>
+            <li><i class="bi bi-tags"></i><div>Custo por tipo de problema;</div></li>
+            <li><i class="bi bi-diagram-3"></i><div>Total para toda a rede;</div></li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- 6. Plano de manutenção -->
+      <article class="etapa etapa--inv">
+        <div class="etapa__img" style="background-image:url('{% static 'img/vistoria_1.jpg' %}')" role="img" aria-label="Parede de escola com necessidade de manutenção"></div>
+        <div class="etapa__corpo">
+          <h3 class="etapa__titulo"><span class="num num--gestao">6</span>Plano de manutenção</h3>
+          <ul class="itens">
+            <li><i class="bi bi-list-ol"></i><div>Definição das prioridades pelo gestor;
+              <small>com base na nota, na gravidade dos problemas e no custo</small></div></li>
+            <li><i class="bi bi-arrow-repeat"></i><div>Atualização do cadastro pelos gestores escolares;
+              <small>sempre que a situação da escola muda</small></div></li>
+            <li><i class="bi bi-patch-check"></i><div>Validação por vistorias técnicas periódicas;</div></li>
+          </ul>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>

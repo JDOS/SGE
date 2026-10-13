@@ -1,0 +1,30 @@
+{% extends "sge/base.html" %}
+{% load static %}
+
+{% block title %}Metodologia | SGE PRO{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/metodologia.css' %}">
+{% endblock %}
+
+{% block content %}
+{% include "sge/_metodologia.html" %}
+
+<!-- ================= CRONOGRAMA ================= -->
+<section class="secao" id="cronograma">
+  <h2 class="faixa">CRONOGRAMA DE IMPLANTAÇÃO</h2>
+  <p class="texto-intro cronograma__intro">O projeto é executado em 12 meses, com quatro frentes de trabalho em paralelo.</p>
+  <div class="container frentes">
+    <div class="frente"><h4>Inspeção das unidades de ensino</h4>
+      <ol><li>Metodologia de inspeção</li><li>Treinamento da equipe</li><li>Inspeção das unidades</li></ol></div>
+    <div class="frente"><h4>Metodologia de avaliação</h4>
+      <ol><li>Desenvolvimento</li><li>Aplicação nas escolas</li><li>Validação</li></ol></div>
+    <div class="frente"><h4>Sistema de gestão (SGE)</h4>
+      <ol><li>Prototipagem</li><li>Programa computacional</li><li>Cadastro do banco de dados</li><li>Capacitação SMED Araucária</li></ol></div>
+    <div class="frente"><h4>Educação e conscientização</h4>
+      <ol><li>Estruturação do programa</li><li>Material didático</li><li>Aplicação das atividades</li></ol></div>
+  </div>
+</section>
+
+{% include "sge/_rodape.html" %}
+{% endblock %}

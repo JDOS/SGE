@@ -1,0 +1,112 @@
+/* ===== SGE PRO – pesquisa e detalhe de escolas ===== */
+
+/* ---------- layout lista + mapa ---------- */
+.pesquisa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 40%);
+  height: calc(100vh - var(--topbar-h));
+}
+.pesquisa__lista { overflow-y: auto; background: #f0f2f5; padding: 20px 16px 32px; }
+.pesquisa__mapa { position: relative; }
+#mapa { position: absolute; inset: 0; }
+
+/* ---------- filtro ---------- */
+.filtro { margin-bottom: 18px; }
+.filtro__botao {
+  width: 100%; max-width: 540px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fff; border: 0; padding: 12px 18px; cursor: pointer;
+  font: 600 .95rem/1 "Barlow", sans-serif; color: var(--texto);
+  box-shadow: 0 1px 4px rgba(0,0,0,.18);
+}
+.filtro__botao .material-icons { color: var(--verde); }
+.filtro__form {
+  max-width: 540px; background: #fff; padding: 16px 18px;
+  display: grid; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.18); border-top: 1px solid var(--borda);
+}
+.filtro__form[hidden] { display: none; }
+.filtro__form label { display: grid; gap: 4px; font-size: .88rem; font-weight: 600; color: var(--texto-suave); }
+.filtro__form input, .filtro__form select {
+  font: inherit; font-weight: 400; color: var(--texto);
+  padding: 8px 10px; border: 1px solid var(--borda); background: #fff;
+}
+.filtro__acoes { display: flex; gap: 10px; }
+.filtro__total { margin: 10px 2px 0; font-size: .88rem; color: var(--texto-suave); }
+
+.btn-cheio, .btn-linha {
+  display: inline-block; padding: 6px 14px; font: 600 .85rem/1.2 "Barlow", sans-serif;
+  letter-spacing: .04em; text-decoration: none; cursor: pointer; border: 1px solid var(--verde);
+}
+.btn-cheio { background: var(--verde); color: #fff; }
+.btn-cheio:hover { background: var(--verde-escuro); }
+.btn-linha { background: #fff; color: var(--verde); }
+.btn-linha:hover { background: var(--verde); color: #fff; }
+
+/* ---------- cards ---------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.card {
+  background: #fff; display: flex; flex-direction: column;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2); outline: 3px solid transparent; transition: outline-color .2s;
+}
+.card.ativo { outline-color: var(--destaque); }
+.card__foto { aspect-ratio: 4 / 3; background: #dfe3e8; overflow: hidden; }
+.card__foto img { width: 100%; height: 100%; object-fit: cover; }
+.card__sem-foto { height: 100%; min-height: 160px; display: flex; align-items: center; justify-content: center; color: #9aa4b1; }
+.card__sem-foto .material-icons { font-size: 56px; width: auto; flex: none; }
+
+.card__faixa {
+  background: #707780; color: #fff;
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px; min-height: 40px;
+}
+.card__faixa h3 { margin: 0 0 0 auto; font-size: .95rem; font-weight: 600; text-align: right; line-height: 1.25; }
+.card__icones { display: flex; gap: 2px; }
+.card__icones .material-icons { font-size: 18px; color: #f5d76e; width: 18px; flex-basis: 18px; }
+
+.card__corpo { padding: 12px 14px 4px; flex: 1; font-size: .92rem; }
+.card__corpo p { margin: 0 0 8px; }
+.card__rodape { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px 12px 8px; }
+.card__pino {
+  background: none; border: 0; padding: 4px; cursor: pointer; color: #6b7480; display: flex;
+}
+.card__pino:hover { color: var(--verde); }
+.card__pino--off { cursor: default; color: #b7bec7; }
+
+.vazio { grid-column: 1 / -1; text-align: center; color: var(--texto-suave); padding: 40px 16px; }
+.vazio .material-icons { font-size: 48px; width: auto; flex: none; color: #9aa4b1; }
+
+/* ---------- mapa ---------- */
+.pino-escola {
+  background: var(--verde); color: #fff; border: 2px solid #fff;
+  border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,.4);
+}
+.pino-escola .material-icons { transform: rotate(45deg); font-size: 18px; width: 18px; flex-basis: 18px; }
+.popup__foto { width: 200px; height: 120px; object-fit: cover; margin-bottom: 6px; }
+.popup__link { display: inline-block; margin-top: 6px; font-weight: 600; color: var(--verde); }
+.leaflet-container { font-family: "Barlow", sans-serif; }
+
+/* ---------- detalhe ---------- */
+.detalhe { max-width: 1100px; margin: 0 auto; padding: 24px 20px 56px; }
+.detalhe__voltar { display: inline-flex; align-items: center; gap: 6px; color: var(--verde); text-decoration: none; font-weight: 600; }
+.detalhe__titulo { margin: 14px 0 2px; font-size: clamp(1.5rem, 3vw, 2rem); }
+.detalhe__sub { margin: 0 0 20px; color: var(--texto-suave); }
+.detalhe__topo { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-bottom: 32px; }
+.detalhe__foto, .detalhe__mapa { height: 340px; background: #dfe3e8; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.detalhe__foto img { width: 100%; height: 100%; object-fit: cover; }
+#mapaDetalhe { width: 100%; height: 100%; }
+
+.faixa-tabela { font-size: 1.15rem; color: var(--verde); margin: 0 0 8px; }
+.ficha { width: 100%; border-collapse: collapse; font-size: .93rem; margin-bottom: 24px; }
+.ficha th, .ficha td { border: 1px solid #c9d0d9; padding: 6px 10px; text-align: left; vertical-align: top; }
+.ficha th { width: 34%; font-weight: 500; background: #fff; }
+.ficha tr:nth-child(even) th, .ficha tr:nth-child(even) td { background: #eef1f5; }
+
+/* ---------- celular ---------- */
+@media (max-width: 900px) {
+  .pesquisa { grid-template-columns: 1fr; height: auto; }
+  .pesquisa__mapa { order: -1; height: 45vh; }
+  .pesquisa__lista { overflow: visible; }
+  .detalhe__topo { grid-template-columns: 1fr; }
+  .detalhe__foto, .detalhe__mapa { height: 260px; }
+}

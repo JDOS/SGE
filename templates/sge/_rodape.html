@@ -1,0 +1,19 @@
+{% load static %}
+<!-- ================= RODAPÉ / CONTATO ================= -->
+<footer class="rodape" id="contato">
+  <div class="rodape__grid">
+    <img src="{% static 'img/logo_ufpr.png' %}" alt="Universidade Federal do Paraná">
+    <div>
+      <h4>Coordenação</h4>
+      <p>Mauro Lacerda Santos Filho, PhD</p>
+      <p>Universidade Federal do Paraná</p>
+      <p>Curitiba – PR</p>
+    </div>
+    <div>
+      <h4>Contato</h4>
+      <p><i class="bi bi-envelope"></i> {{ contato_email|default:"email@ufpr.br" }}</p>
+      <p><i class="bi bi-telephone"></i> {{ contato_telefone|default:"(41) 0000-0000" }}</p>
+    </div>
+  </div>
+  <p class="rodape__base">SGE PRO – Sistema de Gestão de Escolas · baseado no método SC-BPE (Machado &amp; Santos, 2024)</p>
+</footer>

@@ -15,6 +15,8 @@
 <body>
   {% url 'admin:index' as login_url %}
   {% url 'home' as home_url %}
+  {% url 'pesquisa_escolas' as pesquisa_url %}
+  {% url 'metodologia' as metodologia_url %}
 
   <header class="topbar">
     <div class="topbar__esq">
@@ -38,8 +40,8 @@
     <ul>
       <li><a href="{{ home_url|default:'/' }}"><span class="material-icons">home</span>Inicial</a></li>
       <li><a href="#"><span class="material-icons">dashboard</span>Painel de Análise</a></li>
-      <li><a href="#"><span class="material-icons">search</span>Pesquisa de Escolas</a></li>
-      <li><a href="{{ home_url|default:'/' }}#metodologia"><span class="material-icons">help</span>Metodologia</a></li>
+      <li><a href="{{ pesquisa_url|default:'#' }}"><span class="material-icons">search</span>Pesquisa de Escolas</a></li>
+      <li><a href="{{ metodologia_url|default:'#' }}"><span class="material-icons">help</span>Metodologia</a></li>
       <li><a href="{{ home_url|default:'/' }}#produtos"><span class="material-icons">folder</span>Produtos</a></li>
       <li><a href="{{ login_url }}"><span class="material-icons">settings</span>Configurações</a></li>
     </ul>

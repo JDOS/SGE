@@ -1,0 +1,225 @@
+/* SGE PRO — página inicial (paleta #3B4A5E) */
+:root {
+  --verde: #3b4a5e;          /* cor principal (mantido o nome da variável) */
+  --verde-escuro: #2b3747;   /* rodapé e hover */
+  --verde-claro: #edf0f4;    /* fundo da fórmula */
+  --destaque: #a9bdd6;       /* "PRO" do título e foco */
+  --texto: #262c35;
+  --texto-suave: #5b6472;
+  --borda: #d5dbe3;
+  --fundo: #ffffff;
+  --fundo-alt: #f3f5f8;
+  --min: #b23a3a;
+  --med: #d9a21b;
+  --alto: #3e7d52;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 56px; }
+body {
+  margin: 0;
+  font-family: "Barlow", "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--texto);
+  background: var(--fundo);
+  line-height: 1.55;
+  font-size: 16px;
+}
+img { max-width: 100%; display: block; }
+a { color: var(--verde); }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--destaque); outline-offset: 2px; }
+
+/* ---------- barra superior ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--verde);
+  color: #fff;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 24px;
+  min-height: 48px;
+}
+.topbar__marca { display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; font-weight: 600; }
+.topbar__marca img { height: 30px; }
+.topbar__acesso { color: #fff; text-decoration: none; font-weight: 500; }
+.topbar__acesso:hover { text-decoration: underline; }
+
+/* ---------- hero ---------- */
+.hero {
+  position: relative;
+  min-height: 82vh;
+  padding: 40px 20px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  color: #fff;
+  background: #2b3747 url("../img/hero_escola.jpg") center 40% / cover no-repeat;
+}
+.hero::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(43,55,71,.75) 0%, rgba(43,55,71,.35) 45%, rgba(43,55,71,.8) 100%);
+}
+.hero > * { position: relative; }
+.hero__nav { display: flex; gap: 36px; flex-wrap: wrap; justify-content: center; margin-bottom: 18px; }
+.hero__nav a { color: #fff; text-decoration: none; font-weight: 500; letter-spacing: .08em; font-size: .9rem; opacity: .9; }
+.hero__nav a:hover { opacity: 1; border-bottom: 2px solid var(--destaque); }
+.hero__titulo { font-size: clamp(3.4rem, 9vw, 6.5rem); font-weight: 800; letter-spacing: -.02em; line-height: 1; margin: 0; }
+.hero__titulo span { color: var(--destaque); }
+.hero__sub { font-size: clamp(1.1rem, 2.4vw, 1.6rem); margin: 10px 0 0; font-weight: 400; }
+.hero__autor { margin-top: 28px; font-size: .95rem; opacity: .85; }
+
+/* ---------- títulos de seção (faixa verde) ---------- */
+.secao { padding: 64px 20px; }
+.secao--alt { background: var(--fundo-alt); }
+.faixa {
+  background: var(--verde); color: #fff;
+  text-align: center; font-weight: 700; letter-spacing: .08em;
+  font-size: 1.05rem; padding: 10px 16px; margin: 0 auto 40px; max-width: 1100px;
+}
+.container { max-width: 1100px; margin: 0 auto; }
+
+/* ---------- objetivos ---------- */
+.texto-intro { max-width: 760px; margin: 0 auto 40px; color: var(--texto-suave); text-align: justify; }
+.texto-intro strong { color: var(--verde); }
+.objetivos { list-style: none; padding: 0; margin: 0 auto; max-width: 760px; display: grid; gap: 28px; }
+.objetivos li { text-align: center; }
+.objetivos i { font-size: 1.6rem; color: var(--verde); display: block; margin-bottom: 4px; }
+.objetivos b { display: block; font-size: 1.1rem; }
+.objetivos span { color: var(--texto-suave); }
+
+.numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin: 56px auto 0; max-width: 900px; border-top: 1px solid var(--borda); border-bottom: 1px solid var(--borda); }
+.numeros div { padding: 20px 12px; text-align: center; }
+.numeros div + div { border-left: 1px solid var(--borda); }
+.numeros b { display: block; font-size: 2.2rem; color: var(--verde); line-height: 1.1; }
+.numeros span { font-size: .92rem; color: var(--texto-suave); }
+.fonte { text-align: center; font-size: .85rem; color: var(--texto-suave); margin-top: 12px; }
+
+/* ---------- metodologia (blocos alternados) ---------- */
+.etapa {
+  display: grid; grid-template-columns: 1fr 1.2fr; gap: 0;
+  border: 1px solid var(--borda); background: #fff;
+  margin-bottom: 36px; box-shadow: 0 2px 6px rgba(0,0,0,.08);
+}
+.etapa--inv { grid-template-columns: 1.2fr 1fr; }
+.etapa--inv .etapa__img { order: 2; }
+.etapa__img { min-height: 240px; background: #ddd center / cover no-repeat; }
+.etapa__corpo { padding: 22px 26px; }
+.etapa__titulo {
+  background: var(--verde); color: #fff; font-weight: 700; font-size: 1rem;
+  padding: 7px 14px; margin: 0 0 16px; display: flex; align-items: center; gap: 10px;
+}
+.etapa__titulo small { font-weight: 500; opacity: .85; }
+.itens { list-style: none; padding: 0; margin: 0; }
+.itens li { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid #edf0f4; }
+.itens li:last-child { border-bottom: 0; }
+.itens i { color: var(--verde); font-size: 1.1rem; flex: 0 0 auto; margin-top: 1px; }
+.itens small { display: block; color: var(--texto-suave); font-size: .86rem; }
+
+.formula {
+  background: var(--verde-claro); border-left: 4px solid var(--verde);
+  padding: 10px 14px; font-weight: 600; margin: 4px 0 14px;
+}
+.faixas { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.faixas span { padding: 4px 10px; color: #fff; font-size: .85rem; font-weight: 600; }
+.faixas .f-min { background: var(--min); }
+.faixas .f-med { background: var(--med); color: #2b2f2a; }
+.faixas .f-alto { background: var(--alto); }
+
+/* ---------- produtos ---------- */
+.produtos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.produto { border: 1px solid var(--borda); background: #fff; display: flex; flex-direction: column; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+.produto__img { height: 170px; background: #ddd center top / cover no-repeat; }
+.produto__titulo { background: var(--verde); color: #fff; text-align: center; font-weight: 700; padding: 8px; margin: 0; }
+.produto__corpo { padding: 16px 18px 20px; flex: 1; display: flex; flex-direction: column; }
+.produto .itens { flex: 1; }
+.btn-detalhes {
+  margin-top: 14px; align-self: center;
+  border: 2px solid var(--verde); color: var(--verde); background: #fff;
+  padding: 5px 34px; font-weight: 700; letter-spacing: .06em; font-size: .85rem;
+  text-decoration: none; cursor: pointer; font-family: inherit;
+}
+.btn-detalhes:hover { background: var(--verde); color: #fff; }
+.topbar__acesso:hover, .rodape a:hover { color: var(--destaque); }
+
+.modulos { display: grid; grid-template-columns: 1.3fr 1fr; gap: 36px; align-items: center; margin-top: 56px; }
+.modulos img { border: 1px solid var(--borda); }
+.modulos h3 { margin: 0 0 12px; color: var(--verde); }
+
+/* ---------- cronograma ---------- */
+.frentes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.frente { border-top: 4px solid var(--verde); background: #fff; padding: 16px 18px; }
+.frente h4 { margin: 0 0 8px; font-size: 1rem; }
+.frente ol { margin: 0; padding-left: 18px; color: var(--texto-suave); font-size: .93rem; }
+
+/* ---------- contato / rodapé ---------- */
+.rodape { background: var(--verde-escuro); color: #e4e9f0; padding: 48px 20px 28px; }
+.rodape__grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: auto 1fr 1fr; gap: 36px; align-items: start; }
+.rodape img { height: 72px; }
+.rodape h4 { margin: 0 0 8px; color: #fff; }
+.rodape p { margin: 0 0 4px; }
+.rodape a { color: #fff; }
+.rodape .rodape__base { max-width: 1100px; margin: 32px auto 0; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.2); font-size: .85rem; opacity: .8; }
+
+/* ---------- responsivo ---------- */
+@media (max-width: 900px) {
+  .produtos, .frentes { grid-template-columns: 1fr 1fr; }
+  .modulos { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .etapa, .etapa--inv { grid-template-columns: 1fr; }
+  .etapa--inv .etapa__img { order: 0; }
+  .produtos, .frentes { grid-template-columns: 1fr; }
+  .numeros { grid-template-columns: 1fr 1fr; }
+  .numeros div:nth-child(3) { border-left: 0; }
+  .rodape__grid { grid-template-columns: 1fr; }
+  .hero__nav { gap: 18px; }
+  .texto-intro { text-align: left; }
+  .topbar__marca span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* ================= MENU LATERAL ================= */
+:root { --topbar-h: 60px; --menu-w: 290px; --menu-fundo: #3f3f3f; }
+
+.topbar { min-height: var(--topbar-h); padding: 0 24px 0 16px; box-shadow: 0 2px 4px rgba(0,0,0,.25); }
+.topbar__esq { display: flex; align-items: center; gap: 14px; }
+html { scroll-padding-top: var(--topbar-h); }
+
+.menu-btn {
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 0;
+  background: transparent; color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
+}
+.menu-btn:hover, body.menu-aberto .menu-btn { background: rgba(255,255,255,.12); }
+
+.menu-lateral {
+  position: fixed; top: var(--topbar-h); left: 0; bottom: 0;
+  width: var(--menu-w); z-index: 40;
+  background: var(--menu-fundo); overflow-y: auto;
+  transform: translateX(-100%); transition: transform .25s ease;
+  padding-top: 8px;
+}
+.menu-lateral ul { list-style: none; margin: 0; padding: 0; }
+.menu-lateral a {
+  display: flex; align-items: center; gap: 30px;
+  padding: 12px 18px; color: #fff; text-decoration: none;
+  font-weight: 600; font-size: .95rem;
+}
+.material-icons { width: 24px; overflow: hidden; flex: 0 0 24px; }
+.menu-lateral .material-icons { color: #9e9e9e; font-size: 24px; }
+.menu-lateral a:hover, .menu-lateral a:focus-visible { background: rgba(255,255,255,.08); }
+.menu-lateral a:hover .material-icons { color: #fff; }
+
+body.menu-aberto .menu-lateral { transform: translateX(0); }
+
+/* desktop: o menu empurra o conteúdo, como no SIGPRO */
+.conteudo { transition: margin-left .25s ease; }
+@media (min-width: 901px) {
+  body.menu-aberto .conteudo { margin-left: var(--menu-w); }
+}
+
+/* celular: o menu fica por cima com fundo escurecido */
+.menu-fundo { position: fixed; inset: var(--topbar-h) 0 0 0; background: rgba(0,0,0,.45); z-index: 35; }
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-lateral, .conteudo { transition: none; }
+}

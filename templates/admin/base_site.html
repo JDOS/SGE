@@ -1,0 +1,70 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+    <a href="{% url 'admin:index' %}" class="marca">
+        <img src="{% static 'img/logo_ufpr.png' %}" alt="UFPR">
+        <span>{{ site_header|default:_('Django administration') }}</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    :root, html[data-theme="light"] {
+        /* Header */
+        --header-bg: #3b4a5e;
+        --header-color: #ffffff;
+        --header-branding-color: #ffffff;
+        --header-link-color: #ffffff;
+
+        /* Breadcrumbs */
+        --breadcrumbs-bg: #79aec8;
+        --breadcrumbs-fg: #c4dce8;
+        --breadcrumbs-link-fg: #0c4b6e;
+
+        /* Cabeçalhos dos módulos (fieldsets, apps na lateral) */
+        --primary: #3b4a5e;
+        --secondary: #3b4a5e;
+        --header-color: #ffffff;
+
+        /* Links e botões */
+        --link-fg: #2b3a4e;
+        --link-hover-color: #0c4b6e;
+        --link-selected-fg: #2b3a4e;
+        --button-bg: #3b4a5e;
+        --button-hover-bg: #2b3a4e;
+        --default-button-bg: #3b4a5e;
+        --default-button-hover-bg: #2b3a4e;
+
+        /* Linha selecionada na lateral (amarelo) */
+        --selected-row: #fcf9bd;
+    }
+
+    /* Títulos dos módulos em branco */
+    .module h2, .module caption, .inline-group h2 {
+        color: #ffffff;
+    }
+
+    /* Logo + título no header */
+    #site-name .marca {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        text-decoration: none;
+    }
+    #site-name .marca img {
+        max-height: 100px;
+    }
+    #site-name .marca span {
+        font-size: 1.6rem;
+        font-weight: 300;
+    }
+</style>
+{% endblock %}

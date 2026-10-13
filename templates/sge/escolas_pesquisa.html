@@ -1,0 +1,206 @@
+{% extends "sge/base.html" %}
+{% load static %}
+
+{% block title %}Pesquisa de Escolas | SGE PRO{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css">
+<link rel="stylesheet" href="{% static 'css/escolas.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="pesquisa">
+
+  <!-- ===== Lista ===== -->
+  <section class="pesquisa__lista" aria-label="Escolas cadastradas">
+
+    <div class="filtro">
+      <button type="button" class="filtro__botao" id="filtroBtn" aria-expanded="{{ filtro_ativo|yesno:'true,false' }}" aria-controls="filtroForm">
+        <span class="material-icons">filter_list</span>
+        <span>FILTRAR</span>
+      </button>
+      <form class="filtro__form" id="filtroForm" method="get" {% if not filtro_ativo %}hidden{% endif %}>
+        <label>Buscar
+          <input type="search" name="q" value="{{ filtro.q }}" placeholder="Nome, INEP, bairro ou endereço">
+        </label>
+        <label>Município
+          <select name="municipio">
+            <option value="">Todos</option>
+            {% for m in municipios %}
+              <option value="{{ m }}" {% if m == filtro.municipio %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Etapa de ensino
+          <select name="etapa">
+            <option value="">Todas</option>
+            {% for chave, rotulo in etapas %}
+              <option value="{{ chave }}" {% if chave == filtro.etapa %}selected{% endif %}>{{ rotulo }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <div class="filtro__acoes">
+          <button type="submit" class="btn-cheio">Aplicar</button>
+          {% if filtro_ativo %}<a href="{% url 'pesquisa_escolas' %}" class="btn-linha">Limpar</a>{% endif %}
+        </div>
+      </form>
+      <p class="filtro__total">{{ escolas|length }} escola{{ escolas|length|pluralize }}</p>
+    </div>
+
+    <div class="cards">
+      {% for e in escolas %}
+      <article class="card" data-id="{{ e.pk }}">
+        <div class="card__foto">
+          {% if e.foto %}
+            <img src="{{ e.foto.url }}" alt="Foto da {{ e.nome }}" loading="lazy">
+          {% else %}
+            <div class="card__sem-foto"><span class="material-icons">school</span></div>
+          {% endif %}
+        </div>
+        <div class="card__faixa">
+          <span class="card__icones" aria-hidden="true">
+            {% if e.educacao_infantil %}<span class="material-icons" title="Educação infantil">child_care</span>{% endif %}
+            {% if e.fundamental_1 or e.fundamental_2 %}<span class="material-icons" title="Ensino fundamental">menu_book</span>{% endif %}
+            {% if e.eja %}<span class="material-icons" title="EJA">person</span>{% endif %}
+          </span>
+          <h3>{{ e.nome }}</h3>
+        </div>
+        <div class="card__corpo">
+          <p>{{ e.endereco }}</p>
+          <p>{% if e.bairro %}{{ e.bairro }}, {% endif %}{{ e.municipio }} – {{ e.uf }}</p>
+        </div>
+        <div class="card__rodape">
+          {% if e.latitude is not None and e.longitude is not None %}
+            <button type="button" class="card__pino" data-id="{{ e.pk }}" aria-label="Mostrar {{ e.nome }} no mapa" title="Mostrar no mapa">
+              <span class="material-icons">place</span>
+            </button>
+          {% else %}
+            <span class="card__pino card__pino--off" title="Sem coordenadas cadastradas"><span class="material-icons">location_off</span></span>
+          {% endif %}
+          <a class="btn-linha" href="{% url 'escola_detalhe' e.pk %}">DETALHES</a>
+        </div>
+      </article>
+      {% empty %}
+      <div class="vazio">
+        <span class="material-icons">search_off</span>
+        {% if filtro_ativo %}
+          <p>Nenhuma escola encontrada com esses filtros.</p>
+          <a class="btn-linha" href="{% url 'pesquisa_escolas' %}">Limpar filtros</a>
+        {% else %}
+          <p>Nenhuma escola cadastrada ainda.</p>
+          <a class="btn-linha" href="{% url 'admin:sge_escola_add' %}">Cadastrar escola</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- ===== Mapa ===== -->
+  <section class="pesquisa__mapa" aria-label="Mapa das escolas">
+    <div id="mapa"></div>
+  </section>
+</div>
+
+{{ pontos|json_script:"pontos-escolas" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script>
+(function () {
+  // ----- filtro -----
+  var btn = document.getElementById('filtroBtn');
+  var form = document.getElementById('filtroForm');
+  btn.addEventListener('click', function () {
+    form.hidden = !form.hidden;
+    btn.setAttribute('aria-expanded', !form.hidden);
+  });
+
+  // ----- mapa -----
+  var pontos = JSON.parse(document.getElementById('pontos-escolas').textContent);
+  var mapa = L.map('mapa', { zoomControl: true }).setView([-25.43, -49.27], 10);
+
+  // satélite + nomes de ruas e cidades (Esri, sem chave)
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, attribution: 'Imagens &copy; Esri'
+  }).addTo(mapa);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19
+  }).addTo(mapa);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, opacity: 0.7
+  }).addTo(mapa);
+
+  var icone = L.divIcon({
+    className: 'pino-escola',
+    html: '<span class="material-icons">school</span>',
+    iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -30]
+  });
+
+  function esc(t) {
+    var d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML;
+  }
+
+  var grupo = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    // raio de agrupamento em pixels, conforme o zoom
+    maxClusterRadius: function (zoom) {
+      if (zoom <= 8)  return 200;  // estado/região: junta quase tudo
+      if (zoom <= 11) return 120;  // município
+      if (zoom <= 14) return 80;   // bairros
+      return 40;                   // ruas: quase sem agrupar
+    },
+    disableClusteringAtZoom: 17,   // bem perto: mostra cada escola separada
+    spiderfyOnMaxZoom: true
+  });
+  var marcadores = {};
+
+  pontos.forEach(function (p) {
+    var html =
+      (p.foto ? '<img class="popup__foto" src="' + esc(p.foto) + '" alt="">' : '') +
+      '<strong>' + esc(p.nome) + '</strong><br>' +
+      '<span>' + esc(p.endereco) + '<br>' + esc(p.municipio) + '</span><br>' +
+      '<a class="popup__link" href="' + esc(p.url) + '">Ver detalhes</a>';
+    var m = L.marker([p.lat, p.lng], { icon: icone, title: p.nome }).bindPopup(html);
+    m.on('click', function () { destacar(p.id, true); });
+    marcadores[p.id] = m;
+    grupo.addLayer(m);
+  });
+  mapa.addLayer(grupo);
+
+  if (pontos.length) {
+    mapa.fitBounds(grupo.getBounds(), { padding: [40, 40], maxZoom: 16 });
+  }
+
+  // destaca o card correspondente
+  function destacar(id, rolar) {
+    document.querySelectorAll('.card.ativo').forEach(function (c) { c.classList.remove('ativo'); });
+    var card = document.querySelector('.card[data-id="' + id + '"]');
+    if (!card) return;
+    card.classList.add('ativo');
+    if (rolar) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // pino do card -> centraliza no mapa
+  document.querySelectorAll('.card__pino[data-id]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var id = b.dataset.id, m = marcadores[id];
+      if (!m) return;
+      destacar(id, false);
+      grupo.zoomToShowLayer(m, function () { m.openPopup(); });
+      if (window.matchMedia('(max-width: 900px)').matches) {
+        document.getElementById('mapa').scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+
+  // o mapa precisa recalcular o tamanho quando o menu lateral abre/fecha
+  document.getElementById('menuBtn').addEventListener('click', function () {
+    setTimeout(function () { mapa.invalidateSize(); }, 300);
+  });
+})();
+</script>
+{% endblock %}

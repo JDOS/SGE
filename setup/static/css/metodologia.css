@@ -1,0 +1,44 @@
+
+/* ================= METODOLOGIA (docx) ================= */
+.banner-secao {
+  position: relative; height: 150px;
+  background: #2b3747 center 45% / cover no-repeat;
+  display: flex; align-items: flex-end;
+}
+.banner-secao::before { content: ""; position: absolute; inset: 0; background: rgba(43,55,71,.55); }
+.banner-secao h2 {
+  position: relative; margin: 0; padding: 0 24px 18px;
+  width: 100%; max-width: 1148px; margin-inline: auto;
+  color: #fff; font-size: 1.5rem; font-weight: 700; letter-spacing: .06em;
+}
+
+.fluxo { margin: 0 auto 14px; max-width: 1100px; background: #fff; border: 1px solid var(--borda); padding: 8px; }
+.fluxo img { width: 100%; height: auto; }
+
+.num {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 26px; padding: 0 6px; border-radius: 13px;
+  font-style: normal; font-weight: 700; font-size: .85rem; color: #fff;
+}
+.num--metodo { background: #fff; color: var(--verde); }
+.num--gestao { background: #e8772e; color: #fff; }
+
+.chips, .metodologia .faixas { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.chip { padding: 2px 10px; font-size: .8rem; font-weight: 600; color: #fff; border-radius: 10px; }
+.chip--alta { background: var(--min); }
+.chip--media { background: var(--med); color: #2b2f2a; }
+.chip--baixa { background: #6b7a8f; }
+.metodologia .faixas span { font-size: .8rem; padding: 3px 8px; }
+
+.etapa__img--contain {
+  background-color: #fff; background-size: contain; background-origin: content-box; padding: 24px;
+}
+
+@media (max-width: 680px) {
+  .banner-secao { height: 110px; }
+  .banner-secao h2 { font-size: 1.2rem; }
+}
+
+/* página de metodologia */
+.cronograma__intro { text-align: center; }
+#cronograma .frente { background: var(--fundo-alt); }

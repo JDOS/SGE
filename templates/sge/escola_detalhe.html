@@ -1,0 +1,85 @@
+{% extends "sge/base.html" %}
+{% load static %}
+
+{% block title %}{{ escola.nome }} | SGE PRO{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="{% static 'css/escolas.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="detalhe">
+  <a class="detalhe__voltar" href="{% url 'pesquisa_escolas' %}"><span class="material-icons">arrow_back</span>Voltar para a pesquisa</a>
+
+  <h1 class="detalhe__titulo">{{ escola.nome }}</h1>
+  <p class="detalhe__sub">INEP {{ escola.codigo_inep }} · {{ escola.municipio }} – {{ escola.uf }}</p>
+
+  <div class="detalhe__topo">
+    <div class="detalhe__foto">
+      {% if escola.foto %}
+        <img src="{{ escola.foto.url }}" alt="Foto da {{ escola.nome }}">
+      {% else %}
+        <div class="card__sem-foto"><span class="material-icons">school</span></div>
+      {% endif %}
+    </div>
+    <div class="detalhe__mapa">
+      {% if escola.latitude is not None and escola.longitude is not None %}
+        <div id="mapaDetalhe"></div>
+      {% else %}
+        <div class="vazio"><span class="material-icons">location_off</span><p>Sem coordenadas cadastradas.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <h2 class="faixa-tabela">1. Identificação da escola</h2>
+  <table class="ficha">
+    <tbody>
+      <tr><th>Nome da escola</th><td>{{ escola.nome }}</td></tr>
+      <tr><th>Código INEP</th><td>{{ escola.codigo_inep }}</td></tr>
+      <tr><th>Endereço completo</th><td>{{ escola.endereco }}</td></tr>
+      <tr><th>Município / Bairro</th><td>{{ escola.municipio }} – {{ escola.uf }}{% if escola.bairro %} / {{ escola.bairro }}{% endif %}</td></tr>
+      <tr><th>Coordenadas (GPS)</th><td>{% if escola.latitude is not None %}{{ escola.latitude }}, {{ escola.longitude }}{% else %}—{% endif %}</td></tr>
+      <tr><th>Etapas de ensino</th><td>{{ escola.etapas_texto }}</td></tr>
+      <tr><th>Turnos</th><td>{{ escola.turnos_texto }}</td></tr>
+      <tr><th>Nº de alunos matriculados</th><td>{{ escola.alunos_matriculados }}</td></tr>
+      <tr><th>Nº de alunos com deficiência</th><td>{{ escola.alunos_com_deficiencia }}{% if escola.detalhe_deficiencia %} ({{ escola.detalhe_deficiencia }}){% endif %}</td></tr>
+      <tr><th>Nº de funcionários</th><td>{{ escola.funcionarios }}</td></tr>
+      <tr><th>Área do terreno (m²)</th><td>{{ escola.area_terreno|default:"—" }}</td></tr>
+      <tr><th>Área construída (m²)</th><td>{{ escola.area_construida|default:"—" }}</td></tr>
+      <tr><th>Nº de pavimentos</th><td>{{ escola.pavimentos }}{% if escola.pavimentos_obs %} ({{ escola.pavimentos_obs }}){% endif %}</td></tr>
+      <tr><th>Ano de construção</th><td>{{ escola.ano_construcao|default:"—" }}</td></tr>
+      <tr><th>Última reforma</th><td>{% if escola.ultima_reforma_ano %}{{ escola.ultima_reforma_ano }}{% if escola.ultima_reforma_escopo %} – {{ escola.ultima_reforma_escopo }}{% endif %}{% else %}Sem reforma geral registrada{% endif %}</td></tr>
+      <tr><th>Sistema construtivo</th><td>{{ escola.get_sistema_construtivo_display }}</td></tr>
+      <tr><th>Diretor(a)</th><td>{{ escola.diretor|default:"—" }}</td></tr>
+      <tr><th>Telefone / e-mail</th><td>{{ escola.telefone|default:"—" }}{% if escola.email %} / {{ escola.email }}{% endif %}</td></tr>
+    </tbody>
+  </table>
+
+  {% if user.is_staff %}
+    <p><a class="btn-linha" href="{% url 'admin:sge_escola_change' escola.pk %}">Editar no admin</a></p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if escola.latitude is not None and escola.longitude is not None %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+  var lat = {{ escola.latitude|stringformat:"f" }}, lng = {{ escola.longitude|stringformat:"f" }};
+  var mapa = L.map('mapaDetalhe').setView([lat, lng], 17);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, attribution: 'Imagens &copy; Esri'
+  }).addTo(mapa);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, opacity: 0.7
+  }).addTo(mapa);
+  L.marker([lat, lng], { icon: L.divIcon({
+    className: 'pino-escola', html: '<span class="material-icons">school</span>',
+    iconSize: [34, 34], iconAnchor: [17, 34]
+  }) }).addTo(mapa);
+})();
+</script>
+{% endif %}
+{% endblock %}
