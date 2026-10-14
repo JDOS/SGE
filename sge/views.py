@@ -23,6 +23,29 @@ def painel(request):
 def metodologia(request):
     return render(request, "sge/metodologia.html")
 
+def modulos(request):
+    painel = reverse("painel")
+    itens = [
+        ("Não conformidades", "nao_conformidades.png", painel,
+         "Problemas encontrados nas vistorias"),
+        ("Segurança contra fogo", "seguranca_fogo.png", painel + "?categoria=Segurança+contra+incêndio",
+         "Extintores, rotas de fuga e sinalização"),
+        ("Acessibilidade", "acessibilidade.png", painel + "?categoria=Acessibilidade",
+         "Rampas, sanitários PCD e piso tátil"),
+        ("Índice de Performance", "indice_performance.png", painel,
+         "Nota e ranking das escolas"),
+        ("Conforto", "conforto.png", painel + "?categoria=Conforto+térmico",
+         "Térmico, visual e acústico"),
+        ("Histórico", "historico.png", "", "Evolução das escolas ao longo do tempo"),
+        ("Relatórios", "relatorios.png", "", "Documentos de vistoria e orçamento"),
+        ("Araucarinho", "araucarinho.png", "", "Educação e conscientização dos alunos"),
+    ]
+    modulos = [
+        {"titulo": t, "imagem": "img/modulos/" + img, "url": url, "descricao": d}
+        for t, img, url, d in itens
+    ]
+    return render(request, "sge/modulos.html", {"modulos": modulos})
+
 
 def pesquisa_escolas(request):
     escolas = Escola.objects.all()

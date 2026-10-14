@@ -5,7 +5,7 @@ from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Escola
+from .models import Escola, Categoria, Unidade, Criterio
 
 
 class EscolaAdminForm(forms.ModelForm):
@@ -132,3 +132,40 @@ class EscolaAdmin(admin.ModelAdmin):
                 obj.latitude, obj.longitude,
             )
         return "—"
+
+
+class CriterioInline(admin.TabularInline):
+    model = Criterio
+    extra = 1
+    fields = ("nome", "o_que_verificar")
+ 
+
+@admin.register(Categoria)
+class CategoriaAdmin(admin.ModelAdmin):
+    list_display = ("nome","qtd_criterios")
+    search_fields = ("nome",)
+    inlines = [CriterioInline]
+ 
+    @admin.display(description="QTD Critérios")
+    def qtd_criterios(self, obj):
+        return obj.criterios.count()
+    
+
+@admin.register(Unidade)
+class UnidadeAdmin(admin.ModelAdmin):
+    list_display = ("nome", "sigla")
+    search_fields = ("nome", "sigla")
+
+
+@admin.register(Criterio)
+class CriterioAdmin(admin.ModelAdmin):
+    list_display = ("nome", "categoria", "resumo")
+    list_filter = ("categoria",)
+    search_fields = ("nome", "o_que_verificar", "categoria__nome")
+    list_select_related = ("categoria",)
+    fields = ("categoria", "nome", "o_que_verificar")
+ 
+    @admin.display(description="O que verificar")
+    def resumo(self, obj):
+        texto = obj.o_que_verificar
+        return texto if len(texto) <= 90 else texto[:90] + "…"

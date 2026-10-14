@@ -18,6 +18,7 @@
   {% url 'pesquisa_escolas' as pesquisa_url %}
   {% url 'metodologia' as metodologia_url %}
   {% url 'painel' as painel_url %}
+  {% url 'modulos' as modulos_url %}
 
   <header class="topbar">
     <div class="topbar__esq">
@@ -43,7 +44,7 @@
       <li><a href="{{ painel_url|default:'#' }}"><span class="material-icons">dashboard</span>Painel de Análise</a></li>
       <li><a href="{{ pesquisa_url|default:'#' }}"><span class="material-icons">search</span>Pesquisa de Escolas</a></li>
       <li><a href="{{ metodologia_url|default:'#' }}"><span class="material-icons">help</span>Metodologia</a></li>
-      <li><a href="{{ home_url|default:'/' }}#produtos"><span class="material-icons">folder</span>Produtos</a></li>
+      <li><a href="{{ modulos_url|default:'#' }}"><span class="material-icons">apps</span>Módulos</a></li>
       <li><a href="{{ login_url }}"><span class="material-icons">settings</span>Configurações</a></li>
     </ul>
   </nav>

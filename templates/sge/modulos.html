@@ -1,0 +1,36 @@
+{% extends "sge/base.html" %}
+{% load static %}
+
+{% block title %}Módulos | SGE PRO{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/modulos.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="modulos-pagina">
+  <header class="modulos-cab">
+    <h1>Módulos do sistema</h1>
+    <p>Escolha um módulo para consultar as informações das escolas</p>
+  </header>
+
+  <nav class="modulos-grade" aria-label="Módulos do SGE">
+    {% for m in modulos %}
+      {% if m.url %}
+        <a class="modulo" href="{{ m.url }}">
+      {% else %}
+        <span class="modulo modulo--breve" aria-disabled="true">
+      {% endif %}
+          <span class="modulo__icone">
+            <img src="{% static m.imagem %}" alt="" width="240" height="240">
+          </span>
+          <span class="modulo__rotulo">{{ m.titulo }}</span>
+          <span class="modulo__desc">{{ m.descricao }}</span>
+          {% if not m.url %}<span class="modulo__selo">Em breve</span>{% endif %}
+      {% if m.url %}</a>{% else %}</span>{% endif %}
+    {% endfor %}
+  </nav>
+</div>
+
+{% include "sge/_rodape.html" %}
+{% endblock %}

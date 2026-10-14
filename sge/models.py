@@ -1,6 +1,49 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+class Categoria(models.Model):
+    nome = models.CharField(max_length=100, unique=True)
+ 
+    class Meta:
+        verbose_name = "categoria"
+        verbose_name_plural = "categorias"
+        ordering = ["nome"]
+ 
+    def __str__(self):
+        return self.nome
+
+class Criterio(models.Model):
+    categoria = models.ForeignKey(
+        Categoria, on_delete=models.PROTECT, related_name="criterios",
+    )
+    nome = models.CharField(max_length=150)
+    o_que_verificar = models.TextField("o que verificar")
+
+    class Meta:
+        verbose_name = "critério"
+        verbose_name_plural = "critérios"
+        ordering = ["categoria__nome", "nome"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["categoria", "nome"], name="criterio_unico_por_categoria",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.categoria} – {self.nome}"
+    
+class Unidade(models.Model):
+    nome = models.CharField(max_length=50, unique=True)
+    sigla = models.CharField(max_length=10, unique=True)
+
+    class Meta:
+        verbose_name = "unidade"
+        verbose_name_plural = "unidades"
+        ordering = ["nome"]
+
+    def __str__(self):
+        return f"{self.nome} ({self.sigla})"
+
 
 class Escola(models.Model):
 
@@ -117,3 +160,5 @@ class Escola(models.Model):
             (self.turno_integral, "Integral"),
         ]
         return ", ".join(nome for marcado, nome in turnos if marcado) or "—"
+
+
