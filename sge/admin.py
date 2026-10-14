@@ -5,7 +5,7 @@ from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Escola, Categoria, Unidade, Criterio
+from .models import Escola, Categoria, Unidade, Criterio, Reparo, Atividade
 
 
 class EscolaAdminForm(forms.ModelForm):
@@ -169,3 +169,34 @@ class CriterioAdmin(admin.ModelAdmin):
     def resumo(self, obj):
         texto = obj.o_que_verificar
         return texto if len(texto) <= 90 else texto[:90] + "…"
+
+
+
+@admin.register(Reparo)
+class ReparoAdmin(admin.ModelAdmin):
+    list_display = ("nome", "unidade", "qtd_atividades", "resumo")
+    list_filter = ("unidade",)
+    search_fields = ("nome", "descricao")
+    list_select_related = ("unidade",)
+    fields = ("nome", "unidade", "descricao", "atividades")
+    filter_horizontal = ("atividades",)
+ 
+    @admin.display(description="Atividades")
+    def qtd_atividades(self, obj):
+        return obj.atividades.count()
+ 
+    @admin.display(description="Descrição")
+    def resumo(self, obj):
+        texto = obj.descricao
+        return texto if len(texto) <= 90 else texto[:90] + "…"
+ 
+
+ 
+@admin.register(Atividade)
+class AtividadeAdmin(admin.ModelAdmin):
+    list_display = ("nome", "cod_sicro", "unidade")
+    list_display_links = ("nome",)
+    list_filter = ("unidade",)
+    search_fields = ("nome", "cod_sicro", "descricao")
+    list_select_related = ("unidade",)
+    fields = ("nome", ("cod_sicro", "unidade"), "descricao")

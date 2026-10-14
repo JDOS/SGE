@@ -44,7 +44,44 @@ class Unidade(models.Model):
     def __str__(self):
         return f"{self.nome} ({self.sigla})"
 
+class Atividade(models.Model):
+    cod_sicro = models.CharField("código SICRO", max_length=20, blank=True)
+    nome = models.CharField(max_length=200)
+    descricao = models.TextField("descrição", blank=True)
+    unidade = models.ForeignKey(
+        Unidade, on_delete=models.PROTECT, related_name="atividades",
+        verbose_name="unidade de medida", blank=True, null=True,
+    )
 
+    class Meta:
+        verbose_name = "atividade"
+        verbose_name_plural = "atividades"
+        ordering = ["nome"]
+
+    def __str__(self):
+        if self.cod_sicro:
+            return f"{self.cod_sicro} – {self.nome}"
+        return self.nome
+    
+class Reparo(models.Model):
+    nome = models.CharField(max_length=150, unique=True)
+    descricao = models.TextField("descrição", blank=True)
+    unidade = models.ForeignKey(
+        Unidade, on_delete=models.PROTECT, related_name="reparos",
+    )
+    atividades = models.ManyToManyField(
+        "Atividade", related_name="reparos", blank=True,
+        help_text="Atividades (serviços) que compõem este reparo.",
+    )
+    class Meta:
+        verbose_name = "reparo"
+        verbose_name_plural = "reparos"
+        ordering = ["nome"]
+ 
+    def __str__(self):
+        return f"{self.nome} ({self.unidade.sigla})"
+
+    
 class Escola(models.Model):
 
     class SistemaConstrutivo(models.TextChoices):
@@ -160,5 +197,4 @@ class Escola(models.Model):
             (self.turno_integral, "Integral"),
         ]
         return ", ".join(nome for marcado, nome in turnos if marcado) or "—"
-
 
