@@ -26,10 +26,10 @@ SECRET_KEY = 'django-insecure-4tuaky@0j0kf@0n(!3u!yhictur!o^47850km6k(j)nl#&9++9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['200.236.20.248','200.236.20.133','sgepro.itti.org.br']
-CSRF_TRUSTED_ORIGINS = ["http://200.236.20.248:80","http://200.236.20.133:9000","http://sgepro.itti.org.br:9000"]
+ALLOWED_HOSTS = ['200.236.20.248','200.236.20.133','sgepro.itti.org.br','127.0.0.1']
+CSRF_TRUSTED_ORIGINS = ["http://200.236.20.248","http://200.236.20.133:9000","http://sgepro.itti.org.br","https://sgepro.itti.org.br","http://127.0.0.1:9000"]
 
-
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 SILENCED_SYSTEM_CHECKS = ['security.W019']
 
