@@ -79,7 +79,15 @@
           {% else %}
             <span class="card__pino card__pino--off" title="Sem coordenadas cadastradas"><span class="material-icons">location_off</span></span>
           {% endif %}
-          <a class="btn-linha" href="{% url 'escola_detalhe' e.pk %}">DETALHES</a>
+          <span class="card__botoes">
+            {% if e.relatorio %}
+              <a class="btn-linha btn-relatorio" href="{{ e.relatorio.url }}" download
+                 title="Baixar o relatório da escola">
+                <span class="material-icons" aria-hidden="true">download</span>RELATÓRIO
+              </a>
+            {% endif %}
+            <a class="btn-linha" href="{% url 'escola_detalhe' e.pk %}">DETALHES</a>
+          </span>
         </div>
       </article>
       {% empty %}
@@ -144,18 +152,7 @@
     var d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML;
   }
 
-  var grupo = L.markerClusterGroup({
-    showCoverageOnHover: false,
-    // raio de agrupamento em pixels, conforme o zoom
-    maxClusterRadius: function (zoom) {
-      if (zoom <= 8)  return 200;  // estado/região: junta quase tudo
-      if (zoom <= 11) return 120;  // município
-      if (zoom <= 14) return 80;   // bairros
-      return 40;                   // ruas: quase sem agrupar
-    },
-    disableClusteringAtZoom: 17,   // bem perto: mostra cada escola separada
-    spiderfyOnMaxZoom: true
-  });
+  var grupo = L.markerClusterGroup({ showCoverageOnHover: false });
   var marcadores = {};
 
   pontos.forEach(function (p) {

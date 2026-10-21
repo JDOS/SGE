@@ -3,7 +3,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from .painel_dados import gerar_painel
-
+from decimal import Decimal
 from .models import Escola
 
 def index(request):
@@ -94,4 +94,39 @@ def pesquisa_escolas(request):
 
 def escola_detalhe(request, pk):
     escola = get_object_or_404(Escola, pk=pk)
-    return render(request, "sge/escola_detalhe.html", {"escola": escola})
+ 
+    # vistorias da escola, da mais recente para a mais antiga, com o orçamento de cada uma
+    vistorias = list(escola.vistorias.select_related("responsavel").order_by("-data", "-pk"))
+    for v in vistorias:
+        v.itens = v.itens_orcamento()
+        v.total = sum((i.custo_calc for i in v.itens), Decimal("0.00"))
+        c = v.contagem()
+        v.qtd_criterios = sum(c.values())
+        v.respondidos = v.qtd_criterios - c[""]
+        v.qtd_nao = c["N"]
+        aplicaveis = c["S"] + c["N"]
+        v.atende = round(100 * c["S"] / aplicaveis) if aplicaveis else None
+ 
+    # resumo por categoria da vistoria mais recente
+    ultima = vistorias[0] if vistorias else None
+    categorias = []
+    if ultima and ultima.itens:
+        grupos = {}
+        for i in ultima.itens:
+            nome = i.criterio.categoria.nome
+            g = grupos.setdefault(nome, {"nome": nome, "qtd": 0, "total": Decimal("0.00")})
+            g["qtd"] += 1
+            g["total"] += i.custo_calc
+        categorias = sorted(grupos.values(), key=lambda g: g["total"], reverse=True)
+        maior = categorias[0]["total"] or Decimal("1")
+        for g in categorias:
+            g["barra"] = round(100 * g["total"] / maior)
+            g["parcela"] = round(100 * g["total"] / ultima.total) if ultima.total else 0
+ 
+    return render(request, "sge/escola_detalhe.html", {
+        "escola": escola,
+        "vistorias": vistorias,
+        "ultima": ultima,
+        "categorias": categorias,
+    })
+ 

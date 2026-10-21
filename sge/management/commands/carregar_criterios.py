@@ -47,6 +47,43 @@ CRITERIOS = [
 
     ("Conforto acústico", "Isolamento acústico de paredes", "Paredes com isolamento acústico"),
     ("Conforto acústico", "Poluição sonora", "Sem ruído excessivo interno ou externo"),
+
+    ("Conforto visual", "Iluminação natural", "Aberturas de iluminação > 1/10 da área do piso"),
+    ("Conforto visual", "Iluminação artificial", "Luminárias suficientes e funcionando"),
+
+    ("Infraestrutura", "Instalações de água", "Abastecimento, dimensionamento e materiais adequados, sem vazamentos"),
+    ("Infraestrutura", "Instalações de esgoto", "Rede pública ou fossa, sem entupimentos ou odores"),
+    ("Infraestrutura", "Águas pluviais", "Calhas e condutores com capacidade adequada e desobstruídos"),
+    ("Infraestrutura", "Instalações elétricas", "Abastecimento e quadros adequados, sem fiação exposta"),
+    ("Infraestrutura", "Telecomunicação", "Telefone, computadores e acesso à internet"),
+
+    ("Sustentabilidade", "Eficiência energética", "Uso de iluminação e ventilação natural, energia alternativa"),
+    ("Sustentabilidade", "Gestão ambiental", "Águas servidas vão à rede pública ou a sistema que evite contaminação"),
+    ("Sustentabilidade", "Destinação de resíduos", "Coleta seletiva (separação e descarte)"),
+    ("Sustentabilidade", "Captação de chuvas", "Existe gestão de captação de água de chuva"),
+
+    ("Habitabilidade", "Pé-direito", "Igual ou maior que 2,60 m"),
+    ("Habitabilidade", "Estanqueidade", "Paredes, pisos e áreas molhadas sem infiltração"),
+    ("Habitabilidade", "Sinais de depredação", "Sem vidros quebrados, portas danificadas, lâmpadas estouradas"),
+    ("Habitabilidade", "Poluentes internos", "Ar interno sem poluentes ou proliferação de microrganismos"),
+    ("Habitabilidade", "Acessibilidade (PMR)", "Ambientes acessíveis conforme NBR 9050 — detalhar na seção 5A"),
+    ("Habitabilidade", "Limpeza dos ambientes", "Ambientes e equipamentos limpos"),
+    ("Habitabilidade", "Estética da edificação", "Identidade visual, layout funcional, acabamentos adequados"),
+
+    ("Segurança", "Controle de entrada e saída de alunos", "Existe controle"),
+    ("Segurança", "Controle de entrada de estranhos", "Existe controle"),
+    ("Segurança", "Vigilância diurna", "Existe vigilância"),
+    ("Segurança", "Vigilância noturna", "Existe vigilância ou monitoramento"),
+    ("Segurança", "Vigilância em fins de semana e feriados", "Existe vigilância ou monitoramento"),
+    ("Segurança", "Policiamento contra furtos e violência", "Existe esquema de policiamento"),
+    ("Segurança", "Policiamento contra drogas na escola", "Existe esquema de policiamento"),
+    ("Segurança", "Policiamento contra drogas no entorno", "Existe esquema de policiamento"),
+    ("Segurança", "Iluminação externa", "Entorno da escola iluminado"),
+    ("Segurança", "Proteção de equipamentos caros", "Guardados em sala segura ou com proteção"),
+    ("Segurança", "Segurança no entorno imediato", "Muros, grades ou cercas garantem a segurança"),
+
+    ("Fatores externos", "Localização", "Local adequado, sem riscos ambientais próximos"),
+    ("Fatores externos", "Transporte público", "Acesso a transporte público próximo"),
 ]
 
 

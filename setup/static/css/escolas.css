@@ -110,3 +110,45 @@
   .detalhe__topo { grid-template-columns: 1fr; }
   .detalhe__foto, .detalhe__mapa { height: 260px; }
 }
+
+/* ---------- orçamento na página da escola ---------- */
+.orcamento { margin-top: 36px; }
+.orcamento__base { color: var(--texto-suave); margin: 0 0 16px; }
+.orcamento__kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+.orcamento__kpis div { background: #fff; border: 1px solid var(--borda); border-top: 3px solid var(--verde); padding: 10px 14px; }
+.orcamento__kpis span { display: block; font-size: .82rem; color: var(--texto-suave); }
+.orcamento__kpis b { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.orcamento__kpis div:first-child { border-top-color: #e8772e; }
+
+.orcamento__sub { font-size: 1rem; margin: 24px 0 10px; color: var(--texto); }
+.orcamento__barras { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.orcamento__barras li { display: grid; grid-template-columns: minmax(160px, 260px) 1fr auto; gap: 12px; align-items: center; font-size: .92rem; }
+.orcamento__cat small, .orcamento__valor small { color: var(--texto-suave); }
+.orcamento__trilho { height: 12px; background: #edf0f4; border-radius: 6px; overflow: hidden; }
+.orcamento__trilho i { display: block; height: 100%; background: var(--verde); border-radius: 6px; }
+.orcamento__barras li:first-child .orcamento__trilho i { background: #e8772e; }
+.orcamento__valor { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; min-width: 150px; }
+
+.tabela-rolagem { overflow-x: auto; }
+.ficha--orcamento th { background: var(--verde); color: #fff; font-weight: 600; }
+.ficha--orcamento tr:nth-child(even) th { background: var(--verde); }
+.ficha--orcamento tfoot th { background: #edf0f4 !important; color: var(--texto); }
+.ficha .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ficha--orcamento tr.atual td { font-weight: 600; }
+.orcamento__vazio { padding: 16px; background: #fff; border: 1px dashed var(--borda); color: var(--texto-suave); }
+
+@media (max-width: 700px) {
+  .orcamento__kpis { grid-template-columns: 1fr 1fr; }
+  .orcamento__barras li { grid-template-columns: 1fr auto; }
+  .orcamento__trilho { grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* botão de relatório nos cards e na página da escola */
+.card__botoes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.btn-relatorio { display: inline-flex; align-items: center; gap: 4px; }
+.btn-relatorio .material-icons { font-size: 16px; width: 16px; flex-basis: 16px; overflow: hidden; }
+.card__rodape { gap: 6px; }
+.card__botoes .btn-linha { padding: 6px 8px; font-size: .76rem; }
+.card__botoes { flex-wrap: nowrap; }
+.card__botoes .btn-linha { letter-spacing: .02em; white-space: nowrap; }
+.card__pino { flex: 0 0 auto; }

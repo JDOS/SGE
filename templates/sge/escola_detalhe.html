@@ -6,6 +6,39 @@
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="{% static 'css/escolas.css' %}">
+<style>
+/* ---------- orçamento na página da escola ---------- */
+.orcamento { margin-top: 36px; }
+.orcamento__base { color: var(--texto-suave); margin: 0 0 16px; }
+.orcamento__kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+.orcamento__kpis div { background: #fff; border: 1px solid var(--borda); border-top: 3px solid var(--verde); padding: 10px 14px; }
+.orcamento__kpis span { display: block; font-size: .82rem; color: var(--texto-suave); }
+.orcamento__kpis b { display: block; font-size: 1.35rem; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.orcamento__kpis small { display: block; font-size: .78rem; color: var(--texto-suave); margin-top: 2px; }
+.orcamento__kpis div:first-child { border-top-color: #e8772e; }
+
+.orcamento__sub { font-size: 1rem; margin: 24px 0 10px; color: var(--texto); }
+.orcamento__barras { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.orcamento__barras { max-width: 640px; gap: 0; }
+.orcamento__barras li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: .92rem; padding: 7px 0; border-bottom: 1px solid #e3e7ed; }
+.orcamento__cat small, .orcamento__valor small { color: var(--texto-suave); }
+.orcamento__valor { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; min-width: 150px; }
+
+.tabela-rolagem { overflow-x: auto; }
+.ficha--orcamento { width: 100%; border-collapse: collapse; font-size: .93rem; margin-bottom: 8px; }
+.ficha--orcamento th, .ficha--orcamento td { border: 1px solid #c9d0d9; padding: 7px 10px; text-align: left; vertical-align: top; width: auto; }
+.ficha--orcamento tbody tr:nth-child(even) td { background: #eef1f5; }
+.ficha--orcamento th { background: var(--verde); color: #fff; font-weight: 600; }
+.ficha--orcamento tr:nth-child(even) th { background: var(--verde); }
+.ficha--orcamento tfoot th { background: #edf0f4 !important; color: var(--texto); }
+.ficha--orcamento .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ficha--orcamento tr.atual td { font-weight: 600; }
+.orcamento__vazio { padding: 16px; background: #fff; border: 1px dashed var(--borda); color: var(--texto-suave); }
+
+@media (max-width: 700px) {
+  .orcamento__kpis { grid-template-columns: 1fr 1fr; }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -55,6 +88,91 @@
       <tr><th>Telefone / e-mail</th><td>{{ escola.telefone|default:"—" }}{% if escola.email %} / {{ escola.email }}{% endif %}</td></tr>
     </tbody>
   </table>
+
+  <!-- ================= ORÇAMENTO ================= -->
+  <section class="orcamento" id="orcamento">
+    <h2 class="faixa-tabela">2. Orçamento de recuperação</h2>
+
+    {% if ultima %}
+      <p class="orcamento__base">
+        Com base na vistoria de <b>{{ ultima.data|date:"d/m/Y" }}</b>{% if ultima.responsavel %},
+        feita por {{ ultima.responsavel.get_full_name|default:ultima.responsavel.username }}{% endif %}.
+        {% if vistorias|length > 1 %}O histórico das vistorias anteriores está mais abaixo.{% endif %}
+      </p>
+
+      <div class="orcamento__kpis">
+        <div><span>Custo estimado</span><b>R$ {{ ultima.total|floatformat:"2g" }}</b></div>
+        <div><span>Reparos orçados</span><b>{{ ultima.itens|length }}</b></div>
+        <div><span>Critérios não atendidos</span><b>{{ ultima.qtd_nao }}</b></div>
+        <div><span>Atendimento</span><b>{% if ultima.atende is not None %}{{ ultima.atende }}%{% else %}—{% endif %}</b></div>
+      </div>
+
+      {% if categorias %}
+        <h3 class="orcamento__sub">Custo por categoria</h3>
+        <ul class="orcamento__barras">
+          {% for c in categorias %}
+            <li>
+              <span class="orcamento__cat">{{ c.nome }} <small>({{ c.qtd }} reparo{{ c.qtd|pluralize }})</small></span>
+              <span class="orcamento__valor">R$ {{ c.total|floatformat:"2g" }} <small>{{ c.parcela }}%</small></span>
+            </li>
+          {% endfor %}
+        </ul>
+
+        <h3 class="orcamento__sub">Detalhamento</h3>
+        <div class="tabela-rolagem">
+          <table class="ficha ficha--orcamento">
+            <thead>
+              <tr><th>Categoria</th><th>Critério</th><th>Reparo</th><th class="num">Quantidade</th><th class="num">Custo unit.</th><th class="num">Custo</th></tr>
+            </thead>
+            <tbody>
+              {% for i in ultima.itens %}
+                <tr>
+                  <td>{{ i.criterio.categoria.nome }}</td>
+                  <td>{{ i.criterio.nome }}</td>
+                  <td>{{ i.reparo.nome }}</td>
+                  <td class="num">{{ i.valor|floatformat:"2g" }} {{ i.reparo.unidade.sigla }}</td>
+                  <td class="num">R$ {{ i.custo_unit|floatformat:"2g" }}</td>
+                  <td class="num"><b>R$ {{ i.custo_calc|floatformat:"2g" }}</b></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr><th colspan="5" class="num">Total</th><th class="num">R$ {{ ultima.total|floatformat:"2g" }}</th></tr>
+            </tfoot>
+          </table>
+        </div>
+      {% else %}
+        <p class="orcamento__vazio">Esta vistoria ainda não tem reparos orçados (respostas N com reparo e valor).</p>
+      {% endif %}
+
+      <h3 class="orcamento__sub">Histórico de vistorias</h3>
+      <div class="tabela-rolagem">
+        <table class="ficha ficha--orcamento">
+          <thead>
+            <tr><th>Data</th><th>Responsável</th><th class="num">Respondidos</th><th class="num">Não atendidos</th><th class="num">Atendimento</th><th class="num">Custo estimado</th>{% if user.is_staff %}<th></th>{% endif %}</tr>
+          </thead>
+          <tbody>
+            {% for v in vistorias %}
+              <tr{% if forloop.first %} class="atual"{% endif %}>
+                <td>{{ v.data|date:"d/m/Y" }}{% if forloop.first %} <small>(mais recente)</small>{% endif %}</td>
+                <td>{% if v.responsavel %}{{ v.responsavel.get_full_name|default:v.responsavel.username }}{% else %}—{% endif %}</td>
+                <td class="num">{{ v.respondidos }}/{{ v.qtd_criterios }}</td>
+                <td class="num">{{ v.qtd_nao }}</td>
+                <td class="num">{% if v.atende is not None %}{{ v.atende }}%{% else %}—{% endif %}</td>
+                <td class="num">R$ {{ v.total|floatformat:"2g" }}</td>
+                {% if user.is_staff %}<td><a href="{% url 'admin:sge_vistoria_change' v.pk %}">abrir</a></td>{% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    {% else %}
+      <p class="orcamento__vazio">Nenhuma vistoria registrada para esta escola.
+        {% if user.is_staff %}<a href="{% url 'admin:sge_vistoria_add' %}?escola={{ escola.pk }}">Registrar vistoria</a>{% endif %}
+      </p>
+    {% endif %}
+  </section>
 
   {% if user.is_staff %}
     <p><a class="btn-linha" href="{% url 'admin:sge_escola_change' escola.pk %}">Editar no admin</a></p>

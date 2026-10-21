@@ -1,0 +1,44 @@
+/* Vistoria no admin: rádios S / N / NA lado a lado e cabeçalho por categoria */
+.radio-sna, .radio-sna > div { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.radio-sna label {
+  display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+  padding: 3px 9px; border: 1px solid #c5ccd6; border-radius: 4px; background: #fff;
+  font-weight: 600; white-space: nowrap; color: #333;
+}
+.radio-sna input { margin: 0; }
+.radio-sna label:has(input[value="S"]:checked)  { background: #2e8b57; border-color: #2e8b57; color: #fff; }
+.radio-sna label:has(input[value="N"]:checked)  { background: #c0392b; border-color: #c0392b; color: #fff; }
+.radio-sna label:has(input[value="NA"]:checked) { background: #6b7a8f; border-color: #6b7a8f; color: #fff; }
+
+.vistoria-cat td {
+  background: #3b4a5e !important; color: #fff !important;
+  font-weight: 700; font-size: 13px; padding: 6px 10px !important;
+}
+.vistoria-oculta { display: none; }
+.field-o_que_verificar p { max-width: 420px; white-space: normal; margin: 0; }
+
+/* esconde o texto "critério: resposta" que o Django mostra acima de cada linha */
+.inline-group .tabular td.original p { display: none; }
+.inline-group .tabular tr.has_original td { padding-top: 8px; }
+
+/* foto de cada resposta */
+.field-o_que_verificar { min-width: 220px; }
+.field-foto input[type="file"] { max-width: 210px; font-size: 12px; }
+.foto-resposta { display: flex; gap: 8px; align-items: flex-start; }
+.foto-resposta img { width: 72px; height: 54px; object-fit: cover; border-radius: 3px; display: block; }
+.foto-resposta label { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; margin-top: 4px; }
+
+/* reparo e valor (só quando a resposta é N) */
+.reparo-select { max-width: 220px; }
+.valor-input { width: 90px; }
+.field-valor { white-space: nowrap; }
+.valor-unidade { margin-left: 4px; font-weight: 600; color: #555; }
+.sem-reparo .field-reparo > *, .sem-reparo .field-valor > * { visibility: hidden; }
+
+/* orçamento da vistoria */
+.orcamento-vistoria { min-width: 640px; border-collapse: collapse; }
+.orcamento-vistoria th, .orcamento-vistoria td { padding: 5px 10px; border-bottom: 1px solid #e3e7ed; }
+.orcamento-vistoria thead th { background: #3b4a5e; color: #fff; text-align: left; }
+.orcamento-vistoria tfoot th { background: #edf0f4; font-size: 14px; }
+.orcamento-vistoria tfoot th:first-child { text-align: right; }
+.field-custo_linha { white-space: nowrap; font-weight: 600; }
