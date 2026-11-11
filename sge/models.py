@@ -1,113 +1,14 @@
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from decimal import Decimal
-from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
+
 from django.db import models
 from django.db.models import Sum
+from django.db.models.functions import Lower
 from django.utils import timezone
 
-class Categoria(models.Model):
-    nome = models.CharField(max_length=100, unique=True)
- 
-    class Meta:
-        verbose_name = "categoria"
-        verbose_name_plural = "categorias"
-        ordering = ["nome"]
- 
-    def __str__(self):
-        return self.nome
 
-class Criterio(models.Model):
-    categoria = models.ForeignKey(
-        Categoria, on_delete=models.PROTECT, related_name="criterios",
-    )
-    nome = models.CharField(max_length=150)
-    o_que_verificar = models.TextField("o que verificar")
-    reparos = models.ManyToManyField(
-        "Reparo", related_name="criterios", blank=True,
-        help_text="Reparos possíveis quando o critério não é atendido.",
-    )
-    class Meta:
-        verbose_name = "critério"
-        verbose_name_plural = "critérios"
-        ordering = ["categoria__nome", "nome"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["categoria", "nome"], name="criterio_unico_por_categoria",
-            ),
-        ]
-
-    def __str__(self):
-        return f"{self.categoria} – {self.nome}"
-    
-class Unidade(models.Model):
-    nome = models.CharField(max_length=50, unique=True)
-    sigla = models.CharField(max_length=10, unique=True)
-
-    class Meta:
-        verbose_name = "unidade"
-        verbose_name_plural = "unidades"
-        ordering = ["nome"]
-
-    def __str__(self):
-        return f"{self.nome} ({self.sigla})"
-
-class Atividade(models.Model):
-    cod_sicro = models.CharField("código SINAP", max_length=20, blank=True)
-    nome = models.CharField(max_length=200)
-    descricao = models.TextField("descrição", blank=True)
-    unidade = models.ForeignKey(
-        Unidade, on_delete=models.PROTECT, related_name="atividades",
-        verbose_name="unidade de medida", blank=True, null=True,
-    )
-    custo = models.DecimalField(
-        "custo (R$)", max_digits=12, decimal_places=2, blank=True, null=True,
-        validators=[MinValueValidator(0)],
-        help_text="Custo unitário, por unidade de medida.(CAMPO DEMOSTRATIVO LIGAÇÃO FUTURA PELO CODIGO SINAP)",
-    )
-    class Meta:
-        verbose_name = "atividade"
-        verbose_name_plural = "atividades"
-        ordering = ["nome"]
-
-    def __str__(self):
-        if self.cod_sicro:
-            return f"{self.cod_sicro} – {self.nome}"
-        return self.nome
-    
-class Reparo(models.Model):
-    nome = models.CharField(max_length=150, unique=True)
-    descricao = models.TextField("descrição", blank=True)
-    unidade = models.ForeignKey(
-        Unidade, on_delete=models.PROTECT, related_name="reparos",
-    )
-    atividades = models.ManyToManyField(
-        "Atividade", related_name="reparos", blank=True,
-        help_text="Atividades (serviços) que compõem este reparo.",
-    )
-    class Meta:
-        verbose_name = "reparo"
-        verbose_name_plural = "reparos"
-        ordering = ["nome"]
- 
-    def __str__(self):
-        return f"{self.nome} ({self.unidade.sigla})"
-
-    @property
-    def custo_unitario(self):
-        """Soma do custo de todas as atividades do reparo (R$ por unidade do reparo).
-        Atividades sem custo cadastrado contam como zero."""
-        total = self.atividades.aggregate(total=Sum("custo"))["total"] or 0
-        return Decimal(str(total)).quantize(Decimal("0.01"))
-
-    def calcular_custo(self, quantidade):
-        """Custo do reparo para uma quantidade (na unidade do reparo).
-        Ex.: reparo.calcular_custo(12.5) -> custo de 12,5 m²."""
-        if quantidade in (None, ""):
-            return Decimal("0.00")
-        return (self.custo_unitario * Decimal(str(quantidade))).quantize(Decimal("0.01"))
-    
 class Escola(models.Model):
 
     class SistemaConstrutivo(models.TextChoices):
@@ -124,6 +25,11 @@ class Escola(models.Model):
     )
     foto = models.ImageField(
         "foto da escola", upload_to="escolas/fotos/", blank=True, null=True,
+    )
+    relatorio = models.FileField(
+        "relatório", upload_to="escolas/relatorios/", blank=True, null=True,
+        validators=[FileExtensionValidator(["pdf", "doc", "docx"])],
+        help_text="PDF ou Word. Quando houver arquivo, o botão de download aparece na pesquisa de escolas.",
     )
 
     # ---------- localização ----------
@@ -187,11 +93,6 @@ class Escola(models.Model):
         max_length=20, choices=SistemaConstrutivo.choices, default=SistemaConstrutivo.ALVENARIA,
     )
 
-    relatorio = models.FileField(
-        "relatório", upload_to="escolas/relatorios/", blank=True, null=True,
-        validators=[FileExtensionValidator(["pdf", "doc", "docx"])],
-        help_text="PDF ou Word. Quando houver arquivo, o botão de download aparece na pesquisa de escolas.",
-    )   
     # ---------- contato ----------
     diretor = models.CharField("diretor(a)", max_length=150, blank=True)
     telefone = models.CharField(max_length=20, blank=True)
@@ -230,6 +131,183 @@ class Escola(models.Model):
         return ", ".join(nome for marcado, nome in turnos if marcado) or "—"
 
 
+
+class Categoria(models.Model):
+    nome = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        verbose_name = "categoria"
+        verbose_name_plural = "categorias"
+        ordering = ["nome"]
+
+    def __str__(self):
+        return self.nome
+
+
+class Unidade(models.Model):
+    nome = models.CharField(max_length=50, unique=True)
+    sigla = models.CharField(max_length=10, unique=True)
+
+    class Meta:
+        verbose_name = "unidade"
+        verbose_name_plural = "unidades"
+        ordering = ["nome"]
+
+    def __str__(self):
+        return f"{self.nome} ({self.sigla})"
+
+
+class Criterio(models.Model):
+    categoria = models.ForeignKey(
+        Categoria, on_delete=models.PROTECT, related_name="criterios",
+    )
+    nome = models.CharField(max_length=150)
+    o_que_verificar = models.TextField("o que verificar")
+    reparos = models.ManyToManyField(
+        "Reparo", related_name="criterios", blank=True,
+        help_text="Reparos possíveis quando o critério não é atendido.",
+    )
+
+    class Meta:
+        verbose_name = "critério"
+        verbose_name_plural = "critérios"
+        ordering = ["categoria__nome", "nome"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["categoria", "nome"], name="criterio_unico_por_categoria",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.categoria} – {self.nome}"
+
+
+class Reparo(models.Model):
+    nome = models.CharField(max_length=150, unique=True)
+    descricao = models.TextField("descrição", blank=True)
+    unidade = models.ForeignKey(
+        Unidade, on_delete=models.PROTECT, related_name="reparos",
+    )
+    atividades = models.ManyToManyField(
+        "Atividade", related_name="reparos", blank=True,
+        help_text="Atividades (serviços) que compõem este reparo.",
+    )
+
+    class Meta:
+        verbose_name = "reparo"
+        verbose_name_plural = "reparos"
+        ordering = ["nome"]
+
+    def __str__(self):
+        return f"{self.nome} ({self.unidade.sigla})"
+
+    @property
+    def custo_unitario(self):
+        """Soma do custo de todas as atividades do reparo (R$ por unidade do reparo).
+        Atividades sem custo cadastrado contam como zero."""
+        total = self.atividades.aggregate(total=Sum("custo"))["total"] or 0
+        return Decimal(str(total)).quantize(Decimal("0.01"))
+
+    def calcular_custo(self, quantidade):
+        """Custo do reparo para uma quantidade (na unidade do reparo).
+        Ex.: reparo.calcular_custo(12.5) -> custo de 12,5 m²."""
+        if quantidade in (None, ""):
+            return Decimal("0.00")
+        return (self.custo_unitario * Decimal(str(quantidade))).quantize(Decimal("0.01"))
+
+
+class Atividade(models.Model):
+
+    class Fonte(models.TextChoices):
+        SINAPI = "sinapi", "SINAPI"
+        SINAPI_I = "sinapi_i", "SINAPI-I"
+        COTACAO = "cotacao", "Cotação"
+
+    codigo = models.CharField("código", max_length=20, blank=True)
+    fonte = models.CharField(max_length=10, choices=Fonte.choices, default=Fonte.SINAPI)
+    descricao = models.TextField("descrição")
+    unidade = models.ForeignKey(
+        Unidade, on_delete=models.PROTECT, related_name="atividades",
+        verbose_name="unidade de medida", blank=True, null=True,
+    )
+    custo = models.DecimalField(
+        "custo (R$)", max_digits=12, decimal_places=2, blank=True, null=True,
+        validators=[MinValueValidator(0)],
+        help_text="Custo unitário, por unidade de medida.",
+    )
+
+    class Meta:
+        verbose_name = "atividade"
+        verbose_name_plural = "atividades"
+        ordering = ["descricao"]
+
+    def __str__(self):
+        texto = self.descricao if len(self.descricao) <= 90 else self.descricao[:90] + "…"
+        if self.codigo:
+            return f"{self.codigo} – {texto}"
+        return texto
+
+
+class TipoLocal(models.Model):
+    """Tipos de local que você mesmo cadastra: sala de aula, pátio, corredor, área externa..."""
+    nome = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        verbose_name = "tipo de local"
+        verbose_name_plural = "tipos de local"
+        ordering = ["nome"]
+
+    def __str__(self):
+        return self.nome
+
+
+class Local(models.Model):
+
+    class Ambiente(models.TextChoices):
+        INTERNO = "interno", "Interno"
+        EXTERNO = "externo", "Externo"
+
+    escola = models.ForeignKey(
+        Escola, on_delete=models.CASCADE, related_name="locais",
+    )
+    tipo_local = models.ForeignKey(
+        TipoLocal, on_delete=models.PROTECT, related_name="locais",
+        verbose_name="tipo de local",
+    )
+    nome = models.CharField(max_length=150, help_text="Ex.: Sala 3, Pátio coberto, Banheiro feminino")
+    foto = models.ImageField(upload_to="escolas/locais/", blank=True, null=True)
+
+    # tipo do ambiente
+    ambiente = models.CharField(max_length=10, choices=Ambiente.choices, default=Ambiente.INTERNO)
+    coberto = models.BooleanField(default=True)
+    area_molhada = models.BooleanField(
+        "área molhada", default=False,
+        help_text="Banheiros, cozinha, lavanderia e outros ambientes com água.",
+    )
+
+    class Meta:
+        verbose_name = "local"
+        verbose_name_plural = "locais"
+        ordering = ["escola__nome", "tipo_local__nome", "nome"]
+        constraints = [
+            models.UniqueConstraint(
+                Lower("nome"), "escola",
+                name="local_unico_por_escola",
+                violation_error_message="Esta escola já tem um local com esse nome.",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.nome} ({self.tipo_local})"
+
+    @property
+    def tipo_texto(self):
+        partes = [self.get_ambiente_display(), "coberto" if self.coberto else "descoberto"]
+        if self.area_molhada:
+            partes.append("área molhada")
+        return ", ".join(partes)
+
+
 class Vistoria(models.Model):
     escola = models.ForeignKey(
         Escola, on_delete=models.PROTECT, related_name="vistorias",
@@ -238,21 +316,21 @@ class Vistoria(models.Model):
     responsavel = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name="vistorias",
-        verbose_name="Eng. Responsável",
+        verbose_name="responsável",
         help_text="Se ficar em branco, será o usuário que salvou.",
     )
     observacoes = models.TextField("observações", blank=True)
     criado_em = models.DateTimeField("criado em", auto_now_add=True)
     atualizado_em = models.DateTimeField("atualizado em", auto_now=True)
- 
+
     class Meta:
         verbose_name = "vistoria"
         verbose_name_plural = "vistorias"
         ordering = ["-data", "escola__nome"]
- 
+
     def __str__(self):
         return f"{self.escola.nome} – {self.data:%d/%m/%Y}"
- 
+
     def preparar_respostas(self):
         """Cria uma resposta (em branco) para cada critério que ainda não está na vistoria."""
         existentes = set(self.respostas.values_list("criterio_id", flat=True))
@@ -262,7 +340,7 @@ class Vistoria(models.Model):
         ]
         RespostaVistoria.objects.bulk_create(novas)
         return len(novas)
- 
+
     def itens_orcamento(self):
         """Respostas N com reparo e valor, cada uma com o custo calculado (atributo .custo_calc)."""
         itens = list(
@@ -280,27 +358,27 @@ class Vistoria(models.Model):
             i.custo_unit = Decimal(str(unitarios.get(i.reparo_id) or 0)).quantize(centavos)
             i.custo_calc = (i.custo_unit * i.valor).quantize(centavos)
         return itens
- 
+
     @property
     def custo_total(self):
         """Soma de reparo × valor de todas as respostas N da vistoria (R$)."""
         return sum((i.custo_calc for i in self.itens_orcamento()), Decimal("0.00"))
- 
+
     def contagem(self):
         """Quantidade de respostas S, N, NA e em branco."""
         total = {"S": 0, "N": 0, "NA": 0, "": 0}
         for r in self.respostas.values_list("resposta", flat=True):
             total[r] = total.get(r, 0) + 1
         return total
- 
- 
+
+
 class RespostaVistoria(models.Model):
- 
+
     class Resposta(models.TextChoices):
         SIM = "S", "S"
         NAO = "N", "N"
         NAO_SE_APLICA = "NA", "NA"
- 
+
     vistoria = models.ForeignKey(
         Vistoria, on_delete=models.CASCADE, related_name="respostas",
     )
@@ -309,7 +387,7 @@ class RespostaVistoria(models.Model):
         verbose_name="critério",
     )
     resposta = models.CharField(max_length=2, choices=Resposta.choices, blank=True)
- 
+
     # preenchidos só quando a resposta é N (não atende)
     reparo = models.ForeignKey(
         Reparo, on_delete=models.PROTECT, related_name="respostas",
@@ -321,12 +399,12 @@ class RespostaVistoria(models.Model):
         validators=[MinValueValidator(0)],
         help_text="Quantidade na unidade de medida do reparo.",
     )
- 
+
     observacao = models.CharField("observação", max_length=255, blank=True)
     foto = models.ImageField(
         "foto", upload_to="vistorias/fotos/%Y/%m/", blank=True, null=True,
     )
- 
+
     class Meta:
         verbose_name = "resposta"
         verbose_name_plural = "respostas"
@@ -337,21 +415,21 @@ class RespostaVistoria(models.Model):
                 fields=["vistoria", "criterio"], name="resposta_unica_por_criterio",
             ),
         ]
- 
+
     def __str__(self):
         return f"{self.criterio.nome}: {self.resposta or '—'}"
- 
+
     @property
     def unidade_sigla(self):
         return self.reparo.unidade.sigla if self.reparo_id else ""
- 
+
     @property
     def custo(self):
         """Custo desta resposta: reparo × valor (R$). Zero se não for N ou faltar dado."""
         if self.resposta != self.Resposta.NAO or not self.reparo_id or self.valor is None:
             return Decimal("0.00")
         return self.reparo.calcular_custo(self.valor)
- 
+
     def clean(self):
         # reparo e valor só fazem sentido quando o critério não é atendido
         if self.resposta != self.Resposta.NAO:
@@ -367,4 +445,62 @@ class RespostaVistoria(models.Model):
             erros["reparo"] = "Escolha o reparo correspondente ao valor."
         if erros:
             raise ValidationError(erros)
- 
+
+
+class Problema(models.Model):
+    """Problema observado na escola. Ex.: PR-01 Goteira ou infiltração pelo teto."""
+    codigo = models.CharField("código", max_length=10, unique=True, help_text="Ex.: PR-01")
+    nome = models.CharField(max_length=200)
+
+    class Meta:
+        verbose_name = "problema"
+        verbose_name_plural = "problemas"
+        ordering = ["codigo"]
+
+    def __str__(self):
+        return f"{self.codigo} {self.nome}"
+
+
+class Causa(models.Model):
+    """Causa provável de um problema. Ex.: PR-01.1 Telha quebrada, trincada ou deslocada."""
+    problema = models.ForeignKey(
+        Problema, on_delete=models.CASCADE, related_name="causas",
+    )
+    numero = models.PositiveSmallIntegerField(
+        "nº", blank=True,
+        help_text="Número da causa dentro do problema (o 1 de PR-01.1). Em branco, usa o próximo.",
+    )
+    descricao = models.CharField("causa", max_length=255)
+    codigo_catalogo = models.CharField(
+        "código no catálogo", max_length=20, blank=True, help_text="Ex.: COB-01",
+    )
+    avaliacao_especializada = models.BooleanField("avaliação especializada", default=False)
+    observacao = models.TextField("observação", blank=True)
+
+    class Meta:
+        verbose_name = "causa"
+        verbose_name_plural = "causas"
+        ordering = ["problema__codigo", "numero"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["problema", "numero"], name="causa_numero_unico_por_problema",
+                violation_error_message="Este problema já tem uma causa com esse número.",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.codigo} {self.descricao}"
+
+    @property
+    def codigo(self):
+        """Código da relação, montado a partir do problema: PR-01.1, PR-01.2..."""
+        if not self.problema_id or self.numero is None:
+            return ""
+        return f"{self.problema.codigo}.{self.numero}"
+
+    def save(self, *args, **kwargs):
+        if self.numero is None:
+            ultimo = (Causa.objects.filter(problema_id=self.problema_id)
+                      .aggregate(m=models.Max("numero"))["m"])
+            self.numero = (ultimo or 0) + 1
+        super().save(*args, **kwargs)

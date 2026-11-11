@@ -3,6 +3,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django import forms
 from django.contrib import admin
+from django.db import models
 from django.db.models import Count
 from django.contrib import messages
 from django.http import HttpResponseRedirect
@@ -10,7 +11,8 @@ from django.urls import reverse
 from django.utils.html import format_html, format_html_join
 
 from .models import (
-    Atividade, Categoria, Criterio, Escola, Reparo, RespostaVistoria, Unidade, Vistoria,
+    Atividade, Categoria, Causa, Criterio, Escola, Local, Problema, Reparo, RespostaVistoria, TipoLocal,
+    Unidade, Vistoria,
 )
 
 
@@ -69,9 +71,46 @@ class EscolaAdminForm(forms.ModelForm):
         return super().save(commit=commit)
 
 
+class LocalFormSet(forms.BaseInlineFormSet):
+    """Impede nomes repetidos (sem diferenciar maiúsculas) entre as linhas enviadas juntas."""
+
+    def clean(self):
+        super().clean()
+        vistos = {}
+        for form in self.forms:
+            if not hasattr(form, "cleaned_data") or form.cleaned_data.get("DELETE"):
+                continue
+            nome = (form.cleaned_data.get("nome") or "").strip().lower()
+            if not nome:
+                continue
+            if nome in vistos:
+                form.add_error("nome", "Nome repetido: já existe outro local com esse nome nesta escola.")
+            vistos[nome] = form
+
+
+class LocalInline(admin.TabularInline):
+    model = Local
+    formset = LocalFormSet
+    extra = 1
+    fields = ("tipo_local", "nome", "ambiente", "coberto", "area_molhada", "foto", "miniatura")
+    readonly_fields = ("miniatura",)
+    verbose_name_plural = "Locais da escola"
+
+    @admin.display(description="")
+    def miniatura(self, obj):
+        if obj.foto:
+            return format_html(
+                '<a href="{0}" target="_blank" rel="noopener"><img src="{0}" '
+                'style="width:72px;height:54px;object-fit:cover;border-radius:3px;"></a>',
+                obj.foto.url,
+            )
+        return ""
+
+
 @admin.register(Escola)
 class EscolaAdmin(admin.ModelAdmin):
     form = EscolaAdminForm
+    inlines = [LocalInline]
     list_display = (
         "miniatura", "nome", "codigo_inep", "municipio", "bairro",
         "alunos_matriculados", "funcionarios", "sistema_construtivo",
@@ -241,12 +280,20 @@ class ReparoAdmin(admin.ModelAdmin):
 
 @admin.register(Atividade)
 class AtividadeAdmin(admin.ModelAdmin):
-    list_display = ("nome", "cod_sicro", "unidade", "custo_formatado")
-    list_display_links = ("nome",)
-    list_filter = ("unidade",)
-    search_fields = ("nome", "cod_sicro", "descricao")
+    list_display = ("resumo", "codigo", "fonte", "unidade", "custo_formatado")
+    list_display_links = ("resumo",)
+    list_filter = ("fonte", "unidade")
+    search_fields = ("descricao", "codigo")
     list_select_related = ("unidade",)
-    fields = ("nome", ("cod_sicro", "unidade"), "custo", "descricao")
+    fields = (("codigo", "fonte"), "descricao", ("unidade", "custo"))
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 3, "cols": 80})},
+    }
+
+    @admin.display(description="Descrição", ordering="descricao")
+    def resumo(self, obj):
+        texto = obj.descricao
+        return texto if len(texto) <= 90 else texto[:90] + "…"
 
     @admin.display(description="Custo", ordering="custo")
     def custo_formatado(self, obj):
@@ -255,7 +302,6 @@ class AtividadeAdmin(admin.ModelAdmin):
         if obj.unidade:
             return f"{_brl(obj.custo)} / {obj.unidade.sigla}"
         return _brl(obj.custo)
-
 
 # ================= VISTORIA =================
 
@@ -481,3 +527,86 @@ class VistoriaAdmin(admin.ModelAdmin):
         c = self._cont(obj)
         aplicaveis = c["S"] + c["N"]
         return f"{100 * c['S'] / aplicaveis:.0f}%" if aplicaveis else "—"
+
+
+@admin.register(TipoLocal)
+class TipoLocalAdmin(admin.ModelAdmin):
+    list_display = ("nome", "qtd_locais")
+    search_fields = ("nome",)
+
+    @admin.display(description="Locais")
+    def qtd_locais(self, obj):
+        return obj.locais.count()
+
+
+@admin.register(Local)
+class LocalAdmin(admin.ModelAdmin):
+    list_display = ("miniatura", "nome", "escola", "tipo_local", "ambiente", "coberto", "area_molhada")
+    list_display_links = ("miniatura", "nome")
+    list_filter = ("tipo_local", "ambiente", "coberto", "area_molhada", "escola")
+    search_fields = ("nome", "escola__nome", "tipo_local__nome")
+    list_select_related = ("escola", "tipo_local")
+    autocomplete_fields = ("escola",)
+    fields = ("escola", ("tipo_local", "nome"), ("ambiente", "coberto", "area_molhada"), ("foto", "previa_foto"))
+    readonly_fields = ("previa_foto",)
+
+    @admin.display(description="Foto")
+    def miniatura(self, obj):
+        if obj.foto:
+            return format_html(
+                '<img src="{}" style="width:64px;height:44px;object-fit:cover;border-radius:3px;">',
+                obj.foto.url,
+            )
+        return "—"
+
+    @admin.display(description="Prévia")
+    def previa_foto(self, obj):
+        if obj.foto:
+            return format_html(
+                '<img src="{}" style="max-width:320px;max-height:220px;border-radius:4px;">',
+                obj.foto.url,
+            )
+        return "Nenhuma foto enviada."
+
+
+# ================= PROBLEMAS E CAUSAS =================
+
+class CausaInline(admin.TabularInline):
+    model = Causa
+    extra = 1
+    fields = ("numero", "descricao", "codigo_catalogo", "avaliacao_especializada", "observacao")
+    formfield_overrides = {
+        models.TextField: {"widget": forms.Textarea(attrs={"rows": 2, "cols": 36})},
+    }
+
+
+@admin.register(Problema)
+class ProblemaAdmin(admin.ModelAdmin):
+    list_display = ("codigo", "nome", "qtd_causas")
+    search_fields = ("codigo", "nome", "causas__descricao")
+    inlines = [CausaInline]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_qtd=Count("causas"))
+
+    @admin.display(description="Causas", ordering="_qtd")
+    def qtd_causas(self, obj):
+        return obj._qtd
+
+
+@admin.register(Causa)
+class CausaAdmin(admin.ModelAdmin):
+    list_display = ("relacao", "problema", "descricao", "codigo_catalogo", "avaliacao_especializada", "tem_observacao")
+    list_display_links = ("relacao", "descricao")
+    list_filter = ("avaliacao_especializada", "problema")
+    search_fields = ("descricao", "codigo_catalogo", "problema__codigo", "problema__nome", "observacao")
+    list_select_related = ("problema",)
+    fields = (("problema", "numero"), "descricao", ("codigo_catalogo", "avaliacao_especializada"), "observacao")
+
+    @admin.display(description="Relação", ordering="problema__codigo")
+    def relacao(self, obj):
+        return obj.codigo
+
+    @admin.display(description="Obs.", boolean=True)
+    def tem_observacao(self, obj):
+        return bool(obj.observacao)
