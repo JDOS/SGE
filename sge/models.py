@@ -190,7 +190,9 @@ class Reparo(models.Model):
     )
     atividades = models.ManyToManyField(
         "Atividade", related_name="reparos", blank=True,
-        help_text="Atividades (serviços) que compõem este reparo.",
+        through="ReparoAtividade",
+        verbose_name="bases de referência",
+        help_text="Itens da base de referência (SINAPI, SINAPI-I ou cotação) que compõem este reparo.",
     )
 
     class Meta:
@@ -203,10 +205,10 @@ class Reparo(models.Model):
 
     @property
     def custo_unitario(self):
-        """Soma do custo de todas as atividades do reparo (R$ por unidade do reparo).
+        """Custo por unidade do reparo: soma de (custo da atividade × coeficiente).
         Atividades sem custo cadastrado contam como zero."""
-        total = self.atividades.aggregate(total=Sum("custo"))["total"] or 0
-        return Decimal(str(total)).quantize(Decimal("0.01"))
+        itens = self.composicao.values_list("atividade__custo", "coeficiente")
+        return _somar_composicao(itens)
 
     def calcular_custo(self, quantidade):
         """Custo do reparo para uma quantidade (na unidade do reparo).
@@ -214,6 +216,43 @@ class Reparo(models.Model):
         if quantidade in (None, ""):
             return Decimal("0.00")
         return (self.custo_unitario * Decimal(str(quantidade))).quantize(Decimal("0.01"))
+
+
+def _somar_composicao(itens):
+    """Soma (custo × coeficiente) de uma lista de pares e arredonda em centavos."""
+    total = sum(
+        (Decimal(str(custo or 0)) * Decimal(str(coef if coef is not None else 1)) for custo, coef in itens),
+        Decimal("0"),
+    )
+    return total.quantize(Decimal("0.01"))
+
+
+class ReparoAtividade(models.Model):
+    """Atividade (base de referência) dentro de um reparo, com o seu coeficiente."""
+    reparo = models.ForeignKey(Reparo, on_delete=models.CASCADE, related_name="composicao")
+    atividade = models.ForeignKey(
+        "Atividade", on_delete=models.CASCADE, related_name="composicoes",
+        verbose_name="base de referência",
+    )
+    coeficiente = models.DecimalField(
+        max_digits=14, decimal_places=6, default=1,
+        validators=[MinValueValidator(0)],
+        help_text="Quantidade da atividade por unidade do reparo. Ex.: 0,02 m³ de argamassa por m².",
+    )
+
+    class Meta:
+        db_table = "sge_reparo_atividades"   # reaproveita a tabela que já existe
+        verbose_name = "item da composição"
+        verbose_name_plural = "composição do reparo"
+        unique_together = [("reparo", "atividade")]
+
+    def __str__(self):
+        return f"{self.atividade} × {self.coeficiente}"
+
+    @property
+    def subtotal(self):
+        """Custo da atividade × coeficiente (sem arredondar)."""
+        return Decimal(str(self.atividade.custo or 0)) * self.coeficiente
 
 
 class Atividade(models.Model):
@@ -237,8 +276,8 @@ class Atividade(models.Model):
     )
 
     class Meta:
-        verbose_name = "atividade"
-        verbose_name_plural = "atividades"
+        verbose_name = "base de referência"
+        verbose_name_plural = "bases de referência"
         ordering = ["descricao"]
 
     def __str__(self):
@@ -348,14 +387,15 @@ class Vistoria(models.Model):
             .select_related("criterio__categoria", "reparo__unidade")
         )
         # custo unitário de todos os reparos usados, numa consulta só
-        unitarios = dict(
-            Reparo.objects.filter(pk__in={i.reparo_id for i in itens})
-            .annotate(total=Sum("atividades__custo"))
-            .values_list("pk", "total")
-        )
+        por_reparo = {}
+        for reparo_id, custo, coef in ReparoAtividade.objects.filter(
+            reparo_id__in={i.reparo_id for i in itens}
+        ).values_list("reparo_id", "atividade__custo", "coeficiente"):
+            por_reparo.setdefault(reparo_id, []).append((custo, coef))
+        unitarios = {pk: _somar_composicao(lista) for pk, lista in por_reparo.items()}
         centavos = Decimal("0.01")
         for i in itens:
-            i.custo_unit = Decimal(str(unitarios.get(i.reparo_id) or 0)).quantize(centavos)
+            i.custo_unit = unitarios.get(i.reparo_id, Decimal("0.00"))
             i.custo_calc = (i.custo_unit * i.valor).quantize(centavos)
         return itens
 

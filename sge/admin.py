@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils.html import format_html, format_html_join
 
 from .models import (
-    Atividade, Categoria, Causa, Criterio, Escola, Local, Problema, Reparo, RespostaVistoria, TipoLocal,
+    Atividade, Categoria, Causa, Criterio, Escola, Local, Problema, Reparo, ReparoAtividade, RespostaVistoria, TipoLocal,
     Unidade, Vistoria,
 )
 
@@ -20,6 +20,12 @@ from .models import (
 def _nome_usuario(usuario):
     """Nome completo do usuário; se não tiver nome cadastrado, usa o login."""
     return usuario.get_full_name() or usuario.username
+
+
+def _num(valor):
+    """Número no formato brasileiro, sem zeros sobrando: 0.020000 -> 0,02 ; 1.000000 -> 1"""
+    texto = format(Decimal(valor).normalize(), "f")
+    return texto.replace(".", ",")
 
 
 def _brl(valor):
@@ -233,15 +239,42 @@ class CriterioAdmin(admin.ModelAdmin):
         return texto if len(texto) <= 90 else texto[:90] + "…"
 
 
+class ReparoAtividadeInline(admin.TabularInline):
+    model = ReparoAtividade
+    extra = 1
+    autocomplete_fields = ("atividade",)
+    fields = ("atividade", "coeficiente", "unidade_atividade", "custo_atividade", "subtotal_fmt")
+    readonly_fields = ("unidade_atividade", "custo_atividade", "subtotal_fmt")
+    verbose_name = "item"
+    verbose_name_plural = "Composição (bases de referência × coeficiente)"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("atividade__unidade")
+
+    @admin.display(description="Unid.")
+    def unidade_atividade(self, obj):
+        return obj.atividade.unidade.sigla if obj.pk and obj.atividade.unidade else ""
+
+    @admin.display(description="Custo unit.")
+    def custo_atividade(self, obj):
+        if not obj.pk:
+            return ""
+        return _brl(obj.atividade.custo) if obj.atividade.custo is not None else "sem custo"
+
+    @admin.display(description="Subtotal")
+    def subtotal_fmt(self, obj):
+        return _brl(obj.subtotal) if obj.pk else ""
+
+
 @admin.register(Reparo)
 class ReparoAdmin(admin.ModelAdmin):
     list_display = ("nome", "unidade", "qtd_atividades", "custo_unitario_fmt", "resumo")
     list_filter = ("unidade",)
     search_fields = ("nome", "descricao")
     list_select_related = ("unidade",)
-    fields = ("nome", "unidade", "descricao", "atividades", "custo_calculado")
+    fields = ("nome", "unidade", "descricao", "custo_calculado")
     readonly_fields = ("custo_calculado",)
-    filter_horizontal = ("atividades",)
+    inlines = [ReparoAtividadeInline]
 
     @admin.display(description="Custo unitário")
     def custo_unitario_fmt(self, obj):
@@ -251,24 +284,33 @@ class ReparoAdmin(admin.ModelAdmin):
     def custo_calculado(self, obj):
         if not obj.pk:
             return "Salve o reparo para calcular o custo."
-        atividades = list(obj.atividades.select_related("unidade"))
-        if not atividades:
-            return "Nenhuma atividade escolhida."
+        itens = list(obj.composicao.select_related("atividade__unidade"))
+        if not itens:
+            return "Nenhum item da base de referência escolhido."
         linhas = format_html_join(
-            "", "<tr><td>{}</td><td style='text-align:right'>{}</td></tr>",
-            ((str(a), _brl(a.custo) if a.custo is not None else "sem custo") for a in atividades),
+            "",
+            "<tr><td>{}</td><td style='text-align:right'>{}</td>"
+            "<td style='text-align:right'>× {}</td><td style='text-align:right'>{}</td></tr>",
+            (
+                (str(i.atividade),
+                 _brl(i.atividade.custo) if i.atividade.custo is not None else "sem custo",
+                 _num(i.coeficiente),
+                 _brl(i.subtotal))
+                for i in itens
+            ),
         )
-        sem_custo = sum(1 for a in atividades if a.custo is None)
+        sem_custo = sum(1 for i in itens if i.atividade.custo is None)
         aviso = format_html(
-            "<p style='color:#b23a3a;margin:6px 0 0'>{} atividade(s) sem custo, contadas como R$ 0,00.</p>", sem_custo,
+            "<p style='color:#b23a3a;margin:6px 0 0'>{} item(ns) sem custo, contados como R$ 0,00.</p>", sem_custo,
         ) if sem_custo else ""
         return format_html(
-            "<table style='min-width:420px'>{}<tr><th>Total por {}</th>"
+            "<table style='min-width:560px'><tr><th>Base de referência</th><th>Custo unit.</th>"
+            "<th>Coeficiente</th><th>Subtotal</th></tr>{}<tr><th colspan='3'>Total por {}</th>"
             "<th style='text-align:right'>{}</th></tr></table>{}",
             linhas, obj.unidade.sigla, _brl(obj.custo_unitario), aviso,
         )
 
-    @admin.display(description="Atividades")
+    @admin.display(description="Bases de referência")
     def qtd_atividades(self, obj):
         return obj.atividades.count()
 
