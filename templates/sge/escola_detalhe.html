@@ -108,7 +108,7 @@
       </div>
 
       {% if categorias %}
-        <h3 class="orcamento__sub">Custo por categoria</h3>
+        <h3 class="orcamento__sub">Custo por problema</h3>
         <ul class="orcamento__barras">
           {% for c in categorias %}
             <li>
@@ -122,15 +122,15 @@
         <div class="tabela-rolagem">
           <table class="ficha ficha--orcamento">
             <thead>
-              <tr><th>Categoria</th><th>Critério</th><th>Reparo</th><th class="num">Quantidade</th><th class="num">Custo unit.</th><th class="num">Custo</th></tr>
+              <tr><th>Local</th><th>Problema</th><th>Serviço</th><th class="num">Quantidade</th><th class="num">Custo unit.</th><th class="num">Custo</th></tr>
             </thead>
             <tbody>
               {% for i in ultima.itens %}
                 <tr>
-                  <td>{{ i.criterio.categoria.nome }}</td>
-                  <td>{{ i.criterio.nome }}</td>
+                  <td>{{ i.ocorrencia.local.nome }}</td>
+                  <td>{{ i.ocorrencia.problema.codigo }} {{ i.ocorrencia.problema.nome }}</td>
                   <td>{{ i.reparo.nome }}</td>
-                  <td class="num">{{ i.valor|floatformat:"2g" }} {{ i.reparo.unidade.sigla }}</td>
+                  <td class="num">{{ i.quantidade|floatformat:"-2g" }} {{ i.reparo.unidade.sigla }}</td>
                   <td class="num">R$ {{ i.custo_unit|floatformat:"2g" }}</td>
                   <td class="num"><b>R$ {{ i.custo_calc|floatformat:"2g" }}</b></td>
                 </tr>
@@ -142,7 +142,7 @@
           </table>
         </div>
       {% else %}
-        <p class="orcamento__vazio">Esta vistoria ainda não tem reparos orçados (respostas N com reparo e valor).</p>
+        <p class="orcamento__vazio">Esta vistoria ainda não tem serviços orçados na etapa de locais e problemas.</p>
       {% endif %}
 
       <h3 class="orcamento__sub">Histórico de vistorias</h3>

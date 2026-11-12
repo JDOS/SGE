@@ -1,0 +1,136 @@
+{% extends "sge/base.html" %}
+{% load static %}
+
+{% block title %}{% if ocorrencia %}Editar{% else %}Registrar{% endif %} problema | SGE PRO{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/vistoria.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="vist">
+
+  <header class="vist__cab">
+    <div>
+      <p class="vist__escola">{{ vistoria.escola.nome }} · vistoria de {{ vistoria.data|date:"d/m/Y" }}</p>
+      <h1>{% if ocorrencia %}Editar problema{% else %}Registrar problema{% endif %}</h1>
+    </div>
+    <a class="botao" href="{% url 'vistoria_locais' vistoria.pk %}">
+      <span class="material-icons" aria-hidden="true">arrow_back</span>Voltar para os locais</a>
+  </header>
+
+  {% if erros %}
+    <div class="aviso aviso--error" role="alert">
+      <b>Corrija antes de salvar:</b>
+      <ul>{% for e in erros %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" id="formOcorrencia" novalidate>
+    {% csrf_token %}
+
+    <!-- ===== 1. Local ===== -->
+    <section class="passo">
+      <h2><span>1</span>Local</h2>
+      <label class="campo">Onde o problema foi visto?
+        <select name="local" id="local">
+          <option value="">— escolha o local —</option>
+          {% regroup locais by tipo_local as grupos %}
+          {% for g in grupos %}
+            <optgroup label="{{ g.grouper }}">
+              {% for l in g.list %}
+                <option value="{{ l.pk }}" {% if valores.local == l.pk|stringformat:"s" %}selected{% endif %}>{{ l.nome }}</option>
+              {% endfor %}
+            </optgroup>
+          {% endfor %}
+          <option value="novo" {% if valores.local == "novo" %}selected{% endif %}>+ Novo local (não está na lista)</option>
+        </select>
+      </label>
+
+      <fieldset class="novo-local" id="novoLocal" {% if valores.local != "novo" %}hidden{% endif %}>
+        <legend>Novo local</legend>
+        <div class="linha">
+          <label class="campo">Nome<input type="text" name="novo_nome" value="{{ valores.novo.nome }}" placeholder="Ex.: Sala 5, Banheiro feminino"></label>
+          <label class="campo">Tipo
+            <select name="novo_tipo">
+              <option value="">— escolha —</option>
+              {% for t in tipos_local %}<option value="{{ t.pk }}" {% if valores.novo.tipo == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}
+            </select>
+          </label>
+          <label class="campo">…ou um tipo novo<input type="text" name="novo_tipo_novo" value="{{ valores.novo.tipo_novo }}" placeholder="Ex.: Laboratório"></label>
+        </div>
+        <div class="linha">
+          <label class="campo">Ambiente
+            <select name="novo_ambiente">
+              {% for v, r in ambientes %}<option value="{{ v }}" {% if valores.novo.ambiente == v %}selected{% endif %}>{{ r }}</option>{% endfor %}
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" name="novo_coberto" {% if valores.novo.coberto %}checked{% endif %}> Coberto</label>
+          <label class="check"><input type="checkbox" name="novo_area_molhada" {% if valores.novo.area_molhada %}checked{% endif %}> Área molhada</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <!-- ===== 2. Problema ===== -->
+    <section class="passo">
+      <h2><span>2</span>Problema visualizado</h2>
+      <input type="hidden" name="problema" id="problema" value="{{ valores.problema }}">
+      <label class="campo">Procurar
+        <input type="search" id="buscaProblema" placeholder="Digite o código ou parte do nome. Ex.: goteira, umidade, PR-03" autocomplete="off">
+      </label>
+      <div class="lista-problemas" id="listaProblemas" role="listbox" aria-label="Problemas"></div>
+      <p class="escolhido" id="problemaEscolhido" hidden></p>
+    </section>
+
+    <!-- ===== 3. Causas e serviços ===== -->
+    <section class="passo" id="passoCausas" hidden>
+      <h2><span>3</span>Causas e serviços</h2>
+      <p class="dica">Marcar uma causa mostra só os serviços dela; marcar um serviço mostra só as causas que ele resolve.
+        Pode marcar mais de um de cada.</p>
+
+      <div class="duas-colunas">
+        <div>
+          <div class="coluna__cab"><h3>Causas</h3><button type="button" class="link" data-limpar="causas">limpar</button></div>
+          <p class="filtro-info" id="infoCausas"></p>
+          <div id="listaCausas" class="lista-marcar"></div>
+        </div>
+        <div>
+          <div class="coluna__cab"><h3>Serviços (reparos)</h3><button type="button" class="link" data-limpar="reparos">limpar</button></div>
+          <p class="filtro-info" id="infoReparos"></p>
+          <div id="listaReparos" class="lista-marcar"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 4. Observação e foto ===== -->
+    <section class="passo">
+      <h2><span>4</span>Observação e foto <small>(opcional)</small></h2>
+      <label class="campo">Observação<textarea name="observacao" rows="3">{{ valores.observacao }}</textarea></label>
+      <div class="linha">
+        <label class="campo">Foto<input type="file" name="foto" accept="image/*" capture="environment"></label>
+        {% if ocorrencia.foto %}
+          <div class="foto-atual">
+            <img src="{{ ocorrencia.foto.url }}" alt="Foto atual">
+            <label class="check"><input type="checkbox" name="remover_foto"> remover foto</label>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <div class="barra-total">
+      <p>Total deste problema: <b id="totalOcorrencia">R$ 0,00</b></p>
+      <div>
+        {% if not ocorrencia %}<button type="submit" name="continuar" value="1" class="botao">Salvar e registrar outro</button>{% endif %}
+        <button type="submit" class="botao botao--cheio">Salvar</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+{{ dados|json_script:"dados-vistoria" }}
+{{ valores|json_script:"valores-iniciais" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/ocorrencia.js' %}"></script>
+{% endblock %}

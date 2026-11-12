@@ -1,13 +1,11 @@
-from django.shortcuts import render
+from decimal import Decimal
+
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
-from .painel_dados import gerar_painel
-from decimal import Decimal
-from .models import Escola
 
-def index(request):
-    return render(request,'sge/index.html')
+from .models import Escola
+from .painel_dados import gerar_painel
 
 ETAPAS = {
     "infantil": ("educacao_infantil", "Educação infantil"),
@@ -16,12 +14,14 @@ ETAPAS = {
     "eja": ("eja", "EJA"),
 }
 
+
+def home(request):
+    return render(request, "sge/index.html")
+
+
 def painel(request):
     return render(request, "sge/painel.html", {"painel": gerar_painel()})
 
-
-def metodologia(request):
-    return render(request, "sge/metodologia.html")
 
 def modulos(request):
     painel = reverse("painel")
@@ -45,6 +45,10 @@ def modulos(request):
         for t, img, url, d in itens
     ]
     return render(request, "sge/modulos.html", {"modulos": modulos})
+
+
+def metodologia(request):
+    return render(request, "sge/metodologia.html")
 
 
 def pesquisa_escolas(request):
@@ -94,7 +98,7 @@ def pesquisa_escolas(request):
 
 def escola_detalhe(request, pk):
     escola = get_object_or_404(Escola, pk=pk)
- 
+
     # vistorias da escola, da mais recente para a mais antiga, com o orçamento de cada uma
     vistorias = list(escola.vistorias.select_related("responsavel").order_by("-data", "-pk"))
     for v in vistorias:
@@ -106,14 +110,14 @@ def escola_detalhe(request, pk):
         v.qtd_nao = c["N"]
         aplicaveis = c["S"] + c["N"]
         v.atende = round(100 * c["S"] / aplicaveis) if aplicaveis else None
- 
-    # resumo por categoria da vistoria mais recente
+
+    # resumo por problema da vistoria mais recente (etapa 1: locais e problemas)
     ultima = vistorias[0] if vistorias else None
     categorias = []
     if ultima and ultima.itens:
         grupos = {}
         for i in ultima.itens:
-            nome = i.criterio.categoria.nome
+            nome = f"{i.ocorrencia.problema.codigo} {i.ocorrencia.problema.nome}"
             g = grupos.setdefault(nome, {"nome": nome, "qtd": 0, "total": Decimal("0.00")})
             g["qtd"] += 1
             g["total"] += i.custo_calc
@@ -122,11 +126,10 @@ def escola_detalhe(request, pk):
         for g in categorias:
             g["barra"] = round(100 * g["total"] / maior)
             g["parcela"] = round(100 * g["total"] / ultima.total) if ultima.total else 0
- 
+
     return render(request, "sge/escola_detalhe.html", {
         "escola": escola,
         "vistorias": vistorias,
         "ultima": ultima,
         "categorias": categorias,
     })
- 

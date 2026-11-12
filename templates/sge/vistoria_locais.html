@@ -1,0 +1,111 @@
+{% extends "sge/base.html" %}
+{% load static %}
+
+{% block title %}Vistoria – {{ vistoria.escola.nome }} | SGE PRO{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/vistoria.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="vist">
+
+  <header class="vist__cab">
+    <div>
+      <p class="vist__escola">{{ vistoria.escola.nome }}</p>
+      <h1>Vistoria de {{ vistoria.data|date:"d/m/Y" }}</h1>
+    </div>
+    <ol class="etapas" aria-label="Etapas da vistoria">
+      <li class="etapas__item etapas__item--atual"><span>1</span>Locais e problemas</li>
+      <li class="etapas__item"><a href="{{ url_etapa2 }}"><span>2</span>Critérios (S / N / NA)</a></li>
+    </ol>
+  </header>
+
+  {% for m in messages %}<p class="aviso aviso--{{ m.tags }}">{{ m }}</p>{% endfor %}
+
+  <section class="resumo">
+    <div><span>Locais com problema</span><b>{{ locais|length }}</b></div>
+    <div><span>Problemas registrados</span><b>{{ qtd_ocorrencias }}</b></div>
+    <div class="resumo__total"><span>Orçamento da vistoria</span><b>R$ {{ total|floatformat:"2g" }}</b></div>
+  </section>
+
+  <p class="acoes">
+    <a class="botao botao--cheio" href="{% url 'ocorrencia_nova' vistoria.pk %}">
+      <span class="material-icons" aria-hidden="true">add</span>Registrar problema
+    </a>
+  </p>
+
+  {% for bloco in locais %}
+    <section class="local">
+      <header class="local__cab">
+        {% if bloco.local.foto %}<img src="{{ bloco.local.foto.url }}" alt="">{% endif %}
+        <div>
+          <h2>{{ bloco.local.nome }}</h2>
+          <p>{{ bloco.local.tipo_local }} · {{ bloco.local.tipo_texto }}</p>
+        </div>
+        <b class="local__subtotal">R$ {{ bloco.subtotal|floatformat:"2g" }}</b>
+      </header>
+
+      {% for oc in bloco.ocorrencias %}
+        <article class="ocorr">
+          <div class="ocorr__topo">
+            <h3>{{ oc.problema.codigo }} · {{ oc.problema.nome }}</h3>
+            <div class="ocorr__acoes">
+              <a href="{% url 'ocorrencia_editar' vistoria.pk oc.pk %}">Editar</a>
+              <form method="post" action="{% url 'ocorrencia_excluir' vistoria.pk oc.pk %}"
+                    onsubmit="return confirm('Excluir este problema de {{ bloco.local.nome|escapejs }}?')">
+                {% csrf_token %}<button type="submit">Excluir</button>
+              </form>
+            </div>
+          </div>
+
+          {% if oc.causas.all %}
+            <p class="ocorr__causas"><b>Causas:</b>
+              {% for c in oc.causas.all %}<span class="etiqueta">{{ c.codigo }} {{ c.descricao }}</span>{% endfor %}
+            </p>
+          {% endif %}
+
+          {% if oc.lista_itens %}
+            <div class="rolagem">
+              <table class="tabela">
+                <thead><tr><th>Serviço</th><th class="num">Quantidade</th><th class="num">Custo unit.</th><th class="num">Custo</th></tr></thead>
+                <tbody>
+                  {% for i in oc.lista_itens %}
+                    <tr>
+                      <td>{% if i.reparo.codigo %}<b>{{ i.reparo.codigo }}</b> – {% endif %}{{ i.reparo.nome }}</td>
+                      <td class="num">{{ i.quantidade|floatformat:"-2g" }} {{ i.reparo.unidade.sigla }}</td>
+                      <td class="num">R$ {{ i.custo_unit|floatformat:"2g" }}</td>
+                      <td class="num">R$ {{ i.custo_calc|floatformat:"2g" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot><tr><th colspan="3" class="num">Subtotal</th><th class="num">R$ {{ oc.subtotal|floatformat:"2g" }}</th></tr></tfoot>
+              </table>
+            </div>
+          {% else %}
+            <p class="ocorr__vazio">Nenhum serviço orçado para este problema.</p>
+          {% endif %}
+
+          {% if oc.observacao or oc.foto %}
+            <div class="ocorr__obs">
+              {% if oc.foto %}<a href="{{ oc.foto.url }}" target="_blank" rel="noopener"><img src="{{ oc.foto.url }}" alt="Foto do problema"></a>{% endif %}
+              {% if oc.observacao %}<p>{{ oc.observacao|linebreaksbr }}</p>{% endif %}
+            </div>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </section>
+  {% empty %}
+    <div class="vazio">
+      <span class="material-icons" aria-hidden="true">travel_explore</span>
+      <p>Percorra os locais da escola. Quando encontrar um problema, clique em <b>Registrar problema</b>.</p>
+    </div>
+  {% endfor %}
+
+  <footer class="vist__rodape">
+    <p>Total da vistoria: <b>R$ {{ total|floatformat:"2g" }}</b></p>
+    <a class="botao botao--cheio" href="{{ url_etapa2 }}">Ir para a Etapa 2: critérios
+      <span class="material-icons" aria-hidden="true">arrow_forward</span></a>
+  </footer>
+</div>
+{% endblock %}

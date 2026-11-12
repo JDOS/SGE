@@ -183,7 +183,11 @@ class Criterio(models.Model):
 
 
 class Reparo(models.Model):
-    nome = models.CharField(max_length=150, unique=True)
+    codigo = models.CharField(
+        "código", max_length=20, blank=True,
+        help_text="Código da macrocomposição. Ex.: 100111",
+    )
+    nome = models.CharField(max_length=255, unique=True)
     descricao = models.TextField("descrição", blank=True)
     unidade = models.ForeignKey(
         Unidade, on_delete=models.PROTECT, related_name="reparos",
@@ -199,8 +203,17 @@ class Reparo(models.Model):
         verbose_name = "reparo"
         verbose_name_plural = "reparos"
         ordering = ["nome"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["codigo"], condition=~models.Q(codigo=""),
+                name="reparo_codigo_unico",
+                violation_error_message="Já existe um reparo com esse código.",
+            ),
+        ]
 
     def __str__(self):
+        if self.codigo:
+            return f"{self.codigo} – {self.nome} ({self.unidade.sigla})"
         return f"{self.nome} ({self.unidade.sigla})"
 
     @property
@@ -227,6 +240,16 @@ def _somar_composicao(itens):
     return total.quantize(Decimal("0.01"))
 
 
+def custos_unitarios(reparo_ids):
+    """{reparo_id: custo unitário} de vários reparos numa consulta só."""
+    por_reparo = {}
+    for reparo_id, custo, coef in ReparoAtividade.objects.filter(
+        reparo_id__in=reparo_ids
+    ).values_list("reparo_id", "atividade__custo", "coeficiente"):
+        por_reparo.setdefault(reparo_id, []).append((custo, coef))
+    return {pk: _somar_composicao(lista) for pk, lista in por_reparo.items()}
+
+
 class ReparoAtividade(models.Model):
     """Atividade (base de referência) dentro de um reparo, com o seu coeficiente."""
     reparo = models.ForeignKey(Reparo, on_delete=models.CASCADE, related_name="composicao")
@@ -235,7 +258,7 @@ class ReparoAtividade(models.Model):
         verbose_name="base de referência",
     )
     coeficiente = models.DecimalField(
-        max_digits=14, decimal_places=6, default=1,
+        max_digits=16, decimal_places=8, default=1,
         validators=[MinValueValidator(0)],
         help_text="Quantidade da atividade por unidade do reparo. Ex.: 0,02 m³ de argamassa por m².",
     )
@@ -381,27 +404,23 @@ class Vistoria(models.Model):
         return len(novas)
 
     def itens_orcamento(self):
-        """Respostas N com reparo e valor, cada uma com o custo calculado (atributo .custo_calc)."""
+        """Reparos lançados na Etapa 1 (locais e problemas), cada um com:
+        .custo_unit (R$ por unidade do reparo) e .custo_calc (custo_unit × quantidade)."""
         itens = list(
-            self.respostas.filter(resposta="N", reparo__isnull=False, valor__isnull=False)
-            .select_related("criterio__categoria", "reparo__unidade")
+            OcorrenciaReparo.objects.filter(ocorrencia__vistoria=self)
+            .select_related("ocorrencia__local__tipo_local", "ocorrencia__problema", "reparo__unidade")
+            .order_by("ocorrencia__local__nome", "ocorrencia_id", "pk")
         )
-        # custo unitário de todos os reparos usados, numa consulta só
-        por_reparo = {}
-        for reparo_id, custo, coef in ReparoAtividade.objects.filter(
-            reparo_id__in={i.reparo_id for i in itens}
-        ).values_list("reparo_id", "atividade__custo", "coeficiente"):
-            por_reparo.setdefault(reparo_id, []).append((custo, coef))
-        unitarios = {pk: _somar_composicao(lista) for pk, lista in por_reparo.items()}
+        unitarios = custos_unitarios({i.reparo_id for i in itens})
         centavos = Decimal("0.01")
         for i in itens:
             i.custo_unit = unitarios.get(i.reparo_id, Decimal("0.00"))
-            i.custo_calc = (i.custo_unit * i.valor).quantize(centavos)
+            i.custo_calc = (i.custo_unit * i.quantidade).quantize(centavos)
         return itens
 
     @property
     def custo_total(self):
-        """Soma de reparo × valor de todas as respostas N da vistoria (R$)."""
+        """Soma de todos os reparos lançados na Etapa 1 (R$)."""
         return sum((i.custo_calc for i in self.itens_orcamento()), Decimal("0.00"))
 
     def contagem(self):
@@ -538,9 +557,131 @@ class Causa(models.Model):
             return ""
         return f"{self.problema.codigo}.{self.numero}"
 
+    def reparos_relacionados(self):
+        """Todos os reparos que aparecem nas soluções desta causa."""
+        return Reparo.objects.filter(itens_solucao__solucao__causa=self).distinct()
+
     def save(self, *args, **kwargs):
         if self.numero is None:
             ultimo = (Causa.objects.filter(problema_id=self.problema_id)
                       .aggregate(m=models.Max("numero"))["m"])
             self.numero = (ultimo or 0) + 1
         super().save(*args, **kwargs)
+
+
+class Solucao(models.Model):
+    """Uma forma de resolver a causa. Entre soluções do mesmo tipo, escolhe-se UMA."""
+
+    class Tipo(models.TextChoices):
+        PRINCIPAL = "principal", "Principal"
+        COMPLEMENTAR = "complementar", "Complementar"
+
+    causa = models.ForeignKey(Causa, on_delete=models.CASCADE, related_name="solucoes")
+    tipo = models.CharField(max_length=12, choices=Tipo.choices, default=Tipo.PRINCIPAL)
+    condicao = models.CharField(
+        "condição", max_length=150, blank=True,
+        help_text="Quando usar esta solução. Ex.: conforme a telha, conserto localizado, reforma, forro",
+    )
+    ordem = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "solução"
+        verbose_name_plural = "soluções"
+        ordering = ["causa__problema__codigo", "causa__numero", "-tipo", "ordem", "pk"]  # principal antes de complementar
+
+    def __str__(self):
+        texto = f"{self.causa.codigo} – {self.get_tipo_display()}"
+        return f"{texto}: {self.condicao}" if self.condicao else texto
+
+    def grupos(self):
+        """Itens agrupados: {1: [item, item], 2: [item]} — mesmo grupo = alternativas (OU),
+        grupos diferentes = vão juntos (+)."""
+        grupos = {}
+        for item in self.itens.select_related("reparo__unidade"):
+            grupos.setdefault(item.grupo, []).append(item)
+        return dict(sorted(grupos.items()))
+
+    @property
+    def resumo(self):
+        """Texto no formato da planilha. Ex.: 400315 ou 400325 + 600312 ou 600322"""
+        partes = []
+        for itens in self.grupos().values():
+            nomes = [i.reparo.codigo or i.reparo.nome for i in itens]
+            partes.append(" ou ".join(nomes))
+        return " + ".join(partes) or "—"
+
+
+class ItemSolucao(models.Model):
+    """Reparo dentro de uma solução. Mesmo grupo = escolhe-se um; grupos diferentes = todos."""
+    solucao = models.ForeignKey(Solucao, on_delete=models.CASCADE, related_name="itens")
+    grupo = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="Mesmo número = alternativas (escolhe-se uma). Números diferentes = vão juntos (+).",
+    )
+    rotulo = models.CharField(
+        "rótulo", max_length=100, blank=True,
+        help_text="Como o usuário reconhece esta opção. Ex.: Telha cerâmica",
+    )
+    reparo = models.ForeignKey(Reparo, on_delete=models.PROTECT, related_name="itens_solucao")
+
+    class Meta:
+        verbose_name = "item da solução"
+        verbose_name_plural = "itens da solução"
+        ordering = ["grupo", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["solucao", "reparo"], name="item_solucao_reparo_unico",
+                violation_error_message="Este reparo já está nesta solução.",
+            ),
+        ]
+
+    def __str__(self):
+        texto = self.rotulo or self.reparo.nome
+        return f"grupo {self.grupo}: {texto}"
+
+
+# ================= VISTORIA — ETAPA 1: LOCAIS E PROBLEMAS =================
+
+class Ocorrencia(models.Model):
+    """Problema encontrado num local da escola durante a vistoria."""
+    vistoria = models.ForeignKey(Vistoria, on_delete=models.CASCADE, related_name="ocorrencias")
+    local = models.ForeignKey(Local, on_delete=models.PROTECT, related_name="ocorrencias")
+    problema = models.ForeignKey(Problema, on_delete=models.PROTECT, related_name="ocorrencias")
+    causas = models.ManyToManyField(Causa, related_name="ocorrencias", blank=True)
+    observacao = models.TextField("observação", blank=True)
+    foto = models.ImageField(upload_to="vistorias/ocorrencias/%Y/%m/", blank=True, null=True)
+    criado_em = models.DateTimeField("criado em", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "ocorrência"
+        verbose_name_plural = "ocorrências"
+        ordering = ["local__nome", "pk"]
+
+    def __str__(self):
+        return f"{self.local.nome} – {self.problema}"
+
+    @property
+    def custo(self):
+        unitarios = custos_unitarios(set(self.itens.values_list("reparo_id", flat=True)))
+        centavos = Decimal("0.01")
+        return sum(
+            ((unitarios.get(i.reparo_id, Decimal("0")) * i.quantidade).quantize(centavos) for i in self.itens.all()),
+            Decimal("0.00"),
+        )
+
+
+class OcorrenciaReparo(models.Model):
+    """Reparo escolhido para a ocorrência, com a quantidade na unidade do reparo."""
+    ocorrencia = models.ForeignKey(Ocorrencia, on_delete=models.CASCADE, related_name="itens")
+    reparo = models.ForeignKey(Reparo, on_delete=models.PROTECT, related_name="ocorrencias")
+    quantidade = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
+
+    class Meta:
+        verbose_name = "reparo da ocorrência"
+        verbose_name_plural = "reparos da ocorrência"
+        constraints = [
+            models.UniqueConstraint(fields=["ocorrencia", "reparo"], name="ocorrencia_reparo_unico"),
+        ]
+
+    def __str__(self):
+        return f"{self.reparo} × {self.quantidade}"

@@ -1,17 +1,17 @@
 from django.urls import path
 
-from sge.views import index, pesquisa_escolas, escola_detalhe, metodologia, painel, modulos
-
-from django.conf import settings
-from django.conf.urls.static import static
-
+from . import views, views_vistoria
 
 urlpatterns = [
-    path('', index, name='index'),
-    path("painel/", painel, name="painel"),
-    path("escolas/", pesquisa_escolas, name="pesquisa_escolas"),
-    path("escolas/<int:pk>/", escola_detalhe, name="escola_detalhe"),
-    path("metodologia/", metodologia, name="metodologia"),
-    path("modulos/", modulos, name="modulos"),
-
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path("", views.home, name="home"),
+    path("modulos/", views.modulos, name="modulos"),
+    path("painel/", views.painel, name="painel"),
+    path("metodologia/", views.metodologia, name="metodologia"),
+    path("escolas/", views.pesquisa_escolas, name="pesquisa_escolas"),
+    path("escolas/<int:pk>/", views.escola_detalhe, name="escola_detalhe"),
+    # vistoria — etapa 1: locais e problemas
+    path("vistorias/<int:pk>/locais/", views_vistoria.vistoria_locais, name="vistoria_locais"),
+    path("vistorias/<int:pk>/ocorrencias/nova/", views_vistoria.ocorrencia_form, name="ocorrencia_nova"),
+    path("vistorias/<int:pk>/ocorrencias/<int:oc>/", views_vistoria.ocorrencia_form, name="ocorrencia_editar"),
+    path("vistorias/<int:pk>/ocorrencias/<int:oc>/excluir/", views_vistoria.ocorrencia_excluir, name="ocorrencia_excluir"),
+]

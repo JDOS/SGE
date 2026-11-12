@@ -3,15 +3,18 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django import forms
 from django.contrib import admin
+from django.contrib.admin.widgets import AutocompleteSelectMultiple
 from django.db import models
 from django.db.models import Count
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html, format_html_join
+from django.utils.safestring import mark_safe
 
 from .models import (
-    Atividade, Categoria, Causa, Criterio, Escola, Local, Problema, Reparo, ReparoAtividade, RespostaVistoria, TipoLocal,
+    Atividade, Categoria, Causa, Criterio, Escola, ItemSolucao, Local, Ocorrencia, OcorrenciaReparo, Problema,
+    Reparo, ReparoAtividade, RespostaVistoria, Solucao, TipoLocal,
     Unidade, Vistoria,
 )
 
@@ -268,11 +271,12 @@ class ReparoAtividadeInline(admin.TabularInline):
 
 @admin.register(Reparo)
 class ReparoAdmin(admin.ModelAdmin):
-    list_display = ("nome", "unidade", "qtd_atividades", "custo_unitario_fmt", "resumo")
-    list_filter = ("unidade",)
-    search_fields = ("nome", "descricao")
+    list_display = ("codigo", "nome", "unidade", "qtd_atividades", "custo_unitario_fmt", "resumo")
+    list_display_links = ("codigo", "nome")
+    list_filter = ("unidade", ("itens_solucao__solucao__causa", admin.RelatedOnlyFieldListFilter))
+    search_fields = ("codigo", "nome", "descricao")
     list_select_related = ("unidade",)
-    fields = ("nome", "unidade", "descricao", "custo_calculado")
+    fields = (("codigo", "nome"), "unidade", "descricao", "custo_calculado")
     readonly_fields = ("custo_calculado",)
     inlines = [ReparoAtividadeInline]
 
@@ -366,21 +370,6 @@ class FotoInput(forms.ClearableFileInput):
         )
 
 
-class ReparoSelect(forms.Select):
-    """Lista de reparos que guarda a sigla da unidade de cada opção (data-sigla)."""
-
-    def __init__(self, *args, siglas=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.siglas = siglas or {}
-
-    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
-        opcao = super().create_option(name, value, label, selected, index, subindex, attrs)
-        pk = getattr(value, "value", value)
-        if pk in self.siglas:
-            opcao["attrs"]["data-sigla"] = self.siglas[pk]
-        return opcao
-
-
 class RespostaForm(forms.ModelForm):
     resposta = forms.ChoiceField(
         label="Resposta",
@@ -391,38 +380,18 @@ class RespostaForm(forms.ModelForm):
 
     class Meta:
         model = RespostaVistoria
-        fields = ("resposta", "reparo", "valor", "observacao", "foto")
+        fields = ("resposta", "observacao", "foto")
         widgets = {
-            "observacao": forms.TextInput(attrs={"size": 20, "placeholder": "Observação (opcional)"}),
+            "observacao": forms.TextInput(attrs={"size": 28, "placeholder": "Observação (opcional)"}),
             "foto": FotoInput(),
-            "valor": forms.NumberInput(attrs={"step": "0.01", "min": "0", "class": "valor-input", "placeholder": "0,00"}),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        criterio = self.instance.criterio if self.instance.criterio_id else None
-        reparos = criterio.reparos.select_related("unidade") if criterio else Reparo.objects.none()
-        campo = self.fields["reparo"]
-        campo.queryset = reparos
-        campo.label_from_instance = lambda r: r.nome
-        campo.widget = ReparoSelect(
-            siglas={r.pk: r.unidade.sigla for r in reparos},
-            attrs={"class": "reparo-select"},
-        )
-        campo.widget.choices = campo.choices
-        if reparos:
-            campo.empty_label = "— escolha o reparo —"
-        else:
-            campo.empty_label = "nenhum reparo cadastrado"
-            campo.disabled = True
-            self.fields["valor"].disabled = True
 
 
 class RespostaInline(admin.TabularInline):
     model = RespostaVistoria
     form = RespostaForm
-    fields = ("categoria", "criterio_nome", "o_que_verificar", "resposta", "reparo", "valor", "custo_linha", "observacao", "foto")
-    readonly_fields = ("categoria", "criterio_nome", "o_que_verificar", "custo_linha")
+    fields = ("categoria", "criterio_nome", "o_que_verificar", "resposta", "observacao", "foto")
+    readonly_fields = ("categoria", "criterio_nome", "o_que_verificar")
     extra = 0
     can_delete = False
     verbose_name = "critério"
@@ -437,7 +406,7 @@ class RespostaInline(admin.TabularInline):
 
     def get_queryset(self, request):
         return (super().get_queryset(request)
-                .select_related("criterio__categoria", "reparo__unidade")
+                .select_related("criterio__categoria")
                 .order_by("criterio_id"))
 
     @admin.display(description="Categoria")
@@ -452,21 +421,31 @@ class RespostaInline(admin.TabularInline):
     def o_que_verificar(self, obj):
         return obj.criterio.o_que_verificar
 
-    @admin.display(description="Custo")
-    def custo_linha(self, obj):
-        custo = obj.custo
-        return _brl(custo) if custo else ""
-
 
 @admin.register(Vistoria)
 class VistoriaAdmin(admin.ModelAdmin):
-    list_display = ("escola", "data", "responsavel_nome", "progresso", "qtd_sim", "qtd_nao", "qtd_na", "qtd_fotos", "atendimento", "custo_total_fmt")
+    list_display = ("escola", "data", "responsavel_nome", "link_etapa1", "progresso", "qtd_sim", "qtd_nao", "qtd_na", "qtd_fotos", "atendimento", "custo_total_fmt")
     list_filter = ("data", "escola")
     search_fields = ("escola__nome", "escola__codigo_inep")
     date_hierarchy = "data"
     autocomplete_fields = ("escola",)
-    fields = ("escola", ("data", "responsavel"), "observacoes", "orcamento")
-    readonly_fields = ("orcamento",)
+    fields = ("etapas", "escola", ("data", "responsavel"), "observacoes", "orcamento")
+    readonly_fields = ("etapas", "orcamento")
+
+    @admin.display(description="Etapas")
+    def etapas(self, obj):
+        if not obj.pk:
+            return "Salve para começar pela Etapa 1 (locais e problemas)."
+        return format_html(
+            '<a class="button" href="{}">1. Locais e problemas</a> '
+            '<span style="margin:0 6px">→</span> <b>2. Critérios (S / N / NA)</b> — abaixo',
+            reverse("vistoria_locais", args=[obj.pk]),
+        )
+
+    @admin.display(description="Etapa 1")
+    def link_etapa1(self, obj):
+        return format_html('<a href="{}">locais e problemas ({})</a>',
+                           reverse("vistoria_locais", args=[obj.pk]), obj.ocorrencias.count())
 
     @admin.display(description="Custo total")
     def custo_total_fmt(self, obj):
@@ -478,21 +457,20 @@ class VistoriaAdmin(admin.ModelAdmin):
             return "Salve a vistoria para calcular o orçamento."
         itens = obj.itens_orcamento()
         if not itens:
-            return "Nenhuma resposta N com reparo e valor ainda."
+            return "Nenhum reparo lançado ainda na Etapa 1 (locais e problemas)."
         linhas = format_html_join(
             "",
             "<tr><td>{}</td><td>{}</td><td>{}</td><td style='text-align:right'>{} {}</td>"
             "<td style='text-align:right'>{}</td><td style='text-align:right'><b>{}</b></td></tr>",
             (
-                (i.criterio.categoria.nome, i.criterio.nome, i.reparo.nome,
-                 f"{i.valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."), i.reparo.unidade.sigla,
-                 _brl(i.custo_unit), _brl(i.custo_calc))
+                (i.ocorrencia.local.nome, i.ocorrencia.problema, str(i.reparo),
+                 _num(i.quantidade), i.reparo.unidade.sigla, _brl(i.custo_unit), _brl(i.custo_calc))
                 for i in itens
             ),
         )
         total = sum((i.custo_calc for i in itens), 0)
         return format_html(
-            "<table class='orcamento-vistoria'><thead><tr><th>Categoria</th><th>Critério</th><th>Reparo</th>"
+            "<table class='orcamento-vistoria'><thead><tr><th>Local</th><th>Problema</th><th>Reparo</th>"
             "<th>Quantidade</th><th>Custo unit.</th><th>Custo</th></tr></thead><tbody>{}</tbody>"
             "<tfoot><tr><th colspan='5'>Total</th><th style='text-align:right'>{}</th></tr></tfoot></table>",
             linhas, _brl(total),
@@ -528,8 +506,8 @@ class VistoriaAdmin(admin.ModelAdmin):
         return super().change_view(request, object_id, form_url, extra_context)
 
     def response_add(self, request, obj, post_url_continue=None):
-        messages.success(request, "Vistoria criada. Agora marque S, N ou NA em cada critério.")
-        return HttpResponseRedirect(reverse("admin:sge_vistoria_change", args=[obj.pk]))
+        messages.success(request, "Vistoria criada. Comece pela Etapa 1: percorra os locais e registre os problemas.")
+        return HttpResponseRedirect(reverse("vistoria_locais", args=[obj.pk]))
 
     # ---------- colunas da lista ----------
     def get_queryset(self, request):
@@ -636,6 +614,98 @@ class ProblemaAdmin(admin.ModelAdmin):
         return obj._qtd
 
 
+class SolucaoInlineForm(forms.ModelForm):
+    """Solução com escolha múltipla de reparos direto na tela da causa.
+    Reparos novos entram no grupo 1 (alternativas). Para montar um "+" (grupo 2),
+    abra a solução em "Modificar" e ajuste o grupo."""
+
+    reparos = forms.ModelMultipleChoiceField(
+        label="Reparos",
+        queryset=Reparo.objects.select_related("unidade"),
+        required=False,
+        widget=AutocompleteSelectMultiple(ItemSolucao._meta.get_field("reparo"), admin.site,
+                                          attrs={"style": "width: 30em"}),
+    )
+
+    class Meta:
+        model = Solucao
+        fields = ("tipo", "condicao", "ordem")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields["reparos"].initial = list(self.instance.itens.values_list("reparo_id", flat=True))
+
+    def _sincronizar_itens(self, solucao):
+        escolhidos = {r.pk for r in self.cleaned_data.get("reparos", [])}
+        atuais = {i.reparo_id: i for i in solucao.itens.all()}
+        # remove os que foram tirados da lista (mantém grupo/rótulo dos que ficaram)
+        for reparo_id, item in atuais.items():
+            if reparo_id not in escolhidos:
+                item.delete()
+        # acrescenta os novos no grupo 1
+        ItemSolucao.objects.bulk_create(
+            ItemSolucao(solucao=solucao, reparo_id=pk, grupo=1)
+            for pk in escolhidos - atuais.keys()
+        )
+
+    def save(self, commit=True):
+        solucao = super().save(commit=commit)
+        if commit:
+            self._sincronizar_itens(solucao)
+        else:
+            salvar_m2m = self.save_m2m
+
+            def save_m2m():
+                salvar_m2m()
+                self._sincronizar_itens(solucao)
+            self.save_m2m = save_m2m
+        return solucao
+
+
+class SolucaoInline(admin.TabularInline):
+    model = Solucao
+    form = SolucaoInlineForm
+    extra = 1
+    fields = ("tipo", "condicao", "ordem", "reparos", "resumo_itens")
+    readonly_fields = ("resumo_itens",)
+    show_change_link = True   # abre a solução para ajustar grupos e rótulos
+    verbose_name_plural = "Soluções — escolha os reparos de cada uma (para usar “+” ou rótulos, clique em “Modificar”)"
+
+    @admin.display(description="Como fica")
+    def resumo_itens(self, obj):
+        return obj.resumo if obj.pk else ""
+
+
+def _quadro_solucoes(solucoes):
+    """Quadro de leitura: tipo / condição / grupos com as opções."""
+    blocos = []
+    for sol in solucoes:
+        grupos = sol.grupos()
+        if not grupos:
+            continue
+        partes = []
+        for n, itens in grupos.items():
+            opcoes = format_html_join(
+                mark_safe(" <b>ou</b> "), "{}",
+                ((format_html("{} <small style='color:#666'>({})</small>",
+                              i.rotulo or i.reparo.nome, i.reparo.codigo or i.reparo.unidade.sigla),)
+                 for i in itens),
+            )
+            partes.append(format_html("<span style='white-space:nowrap'>[{}]</span>", opcoes))
+        juntos = format_html_join(mark_safe(" <b>+</b> "), "{}", ((p,) for p in partes))
+        blocos.append(format_html(
+            "<tr><td><b>{}</b></td><td>{}</td><td>{}</td></tr>",
+            sol.get_tipo_display(), sol.condicao or "—", juntos,
+        ))
+    if not blocos:
+        return ""
+    return format_html(
+        "<table><tr><th>Tipo</th><th>Condição</th><th>Opções (dentro de [ ] escolhe-se uma; + = vão juntos)</th></tr>{}</table>",
+        format_html_join("", "{}", ((b,) for b in blocos)),
+    )
+
+
 @admin.register(Causa)
 class CausaAdmin(admin.ModelAdmin):
     list_display = ("relacao", "problema", "descricao", "codigo_catalogo", "avaliacao_especializada", "tem_observacao")
@@ -643,7 +713,16 @@ class CausaAdmin(admin.ModelAdmin):
     list_filter = ("avaliacao_especializada", "problema")
     search_fields = ("descricao", "codigo_catalogo", "problema__codigo", "problema__nome", "observacao")
     list_select_related = ("problema",)
-    fields = (("problema", "numero"), "descricao", ("codigo_catalogo", "avaliacao_especializada"), "observacao")
+    fields = (("problema", "numero"), "descricao", ("codigo_catalogo", "avaliacao_especializada"), "observacao",
+              "solucoes_resumo")
+    readonly_fields = ("solucoes_resumo",)
+    inlines = [SolucaoInline]
+
+    @admin.display(description="Reparos desta causa")
+    def solucoes_resumo(self, obj):
+        if not obj.pk:
+            return "Salve a causa para cadastrar as soluções."
+        return _quadro_solucoes(obj.solucoes.all()) or "Nenhuma solução cadastrada ainda."
 
     @admin.display(description="Relação", ordering="problema__codigo")
     def relacao(self, obj):
@@ -652,3 +731,68 @@ class CausaAdmin(admin.ModelAdmin):
     @admin.display(description="Obs.", boolean=True)
     def tem_observacao(self, obj):
         return bool(obj.observacao)
+
+
+class ItemSolucaoInline(admin.TabularInline):
+    model = ItemSolucao
+    extra = 3
+    autocomplete_fields = ("reparo",)
+    fields = ("grupo", "rotulo", "reparo", "unidade_reparo", "custo_reparo")
+    readonly_fields = ("unidade_reparo", "custo_reparo")
+    verbose_name_plural = "Reparos da solução — mesmo grupo = alternativas (escolhe-se uma); grupos diferentes = vão juntos (+)"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("reparo__unidade")
+
+    @admin.display(description="Unid.")
+    def unidade_reparo(self, obj):
+        return obj.reparo.unidade.sigla if obj.pk else ""
+
+    @admin.display(description="Custo unit.")
+    def custo_reparo(self, obj):
+        return _brl(obj.reparo.custo_unitario) if obj.pk else ""
+
+
+@admin.register(Solucao)
+class SolucaoAdmin(admin.ModelAdmin):
+    list_display = ("causa", "tipo", "condicao", "resumo_itens")
+    list_filter = ("tipo", "causa__problema")
+    search_fields = ("condicao", "causa__descricao", "causa__problema__codigo",
+                     "itens__reparo__codigo", "itens__reparo__nome", "itens__rotulo")
+    list_select_related = ("causa__problema",)
+    autocomplete_fields = ("causa",)
+    fields = ("causa", ("tipo", "ordem"), "condicao", "regra")
+    readonly_fields = ("regra",)
+    inlines = [ItemSolucaoInline]
+
+    @admin.display(description="Reparos")
+    def resumo_itens(self, obj):
+        return obj.resumo
+
+    @admin.display(description="Como fica a escolha")
+    def regra(self, obj):
+        if not obj.pk:
+            return "Salve para ver o resumo."
+        return _quadro_solucoes([obj]) or "Nenhum reparo cadastrado ainda."
+
+
+class OcorrenciaReparoInline(admin.TabularInline):
+    model = OcorrenciaReparo
+    extra = 0
+    autocomplete_fields = ("reparo",)
+    fields = ("reparo", "quantidade")
+
+
+@admin.register(Ocorrencia)
+class OcorrenciaAdmin(admin.ModelAdmin):
+    list_display = ("vistoria", "local", "problema", "custo_fmt")
+    list_filter = ("problema", "vistoria__escola")
+    search_fields = ("local__nome", "problema__nome", "problema__codigo", "vistoria__escola__nome")
+    list_select_related = ("vistoria__escola", "local", "problema")
+    autocomplete_fields = ("vistoria", "problema")
+    filter_horizontal = ("causas",)
+    inlines = [OcorrenciaReparoInline]
+
+    @admin.display(description="Custo")
+    def custo_fmt(self, obj):
+        return _brl(obj.custo)
