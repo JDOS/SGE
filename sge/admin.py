@@ -616,8 +616,8 @@ class ProblemaAdmin(admin.ModelAdmin):
 
 class SolucaoInlineForm(forms.ModelForm):
     """Solução com escolha múltipla de reparos direto na tela da causa.
-    Reparos novos entram no grupo 1 (alternativas). Para montar um "+" (grupo 2),
-    abra a solução em "Modificar" e ajuste o grupo."""
+    "Vão juntos (+)" marcado (padrão): todos os reparos da solução são feitos juntos (A + B).
+    Desmarcado: são alternativas (A ou B). Combinações como (A ou B) + C, em "Modificar"."""
 
     reparos = forms.ModelMultipleChoiceField(
         label="Reparos",
@@ -627,14 +627,25 @@ class SolucaoInlineForm(forms.ModelForm):
                                           attrs={"style": "width: 30em"}),
     )
 
+    juntos = forms.BooleanField(
+        label="Vão juntos (+)", required=False, initial=True,
+        help_text="Marque quando TODOS os reparos escolhidos devem ser feitos juntos (A + B). "
+                  "Desmarcado = alternativas (A ou B).",
+    )
+
     class Meta:
         model = Solucao
         fields = ("tipo", "condicao", "ordem")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._juntos_antes = False
         if self.instance.pk:
             self.fields["reparos"].initial = list(self.instance.itens.values_list("reparo_id", flat=True))
+            grupos = self.instance.grupos()
+            # "juntos" = mais de um grupo e cada grupo com um só reparo (A + B + C)
+            self._juntos_antes = len(grupos) > 1 and all(len(g) == 1 for g in grupos.values())
+            self.fields["juntos"].initial = self._juntos_antes
 
     def _sincronizar_itens(self, solucao):
         escolhidos = {r.pk for r in self.cleaned_data.get("reparos", [])}
@@ -648,6 +659,18 @@ class SolucaoInlineForm(forms.ModelForm):
             ItemSolucao(solucao=solucao, reparo_id=pk, grupo=1)
             for pk in escolhidos - atuais.keys()
         )
+        juntos = self.cleaned_data.get("juntos")
+        itens = list(solucao.itens.order_by("grupo", "pk"))
+        if juntos:
+            # A + B + C: cada reparo no seu próprio grupo
+            for n, item in enumerate(itens, start=1):
+                if item.grupo != n:
+                    item.grupo = n
+                    item.save(update_fields=["grupo"])
+        elif self._juntos_antes:
+            # desmarcou "juntos": todos viram alternativas (A ou B)
+            ItemSolucao.objects.filter(solucao=solucao).update(grupo=1)
+        # desmarcado e já não era "juntos": mantém os grupos (combinações feitas em "Modificar")
 
     def save(self, commit=True):
         solucao = super().save(commit=commit)
@@ -667,10 +690,10 @@ class SolucaoInline(admin.TabularInline):
     model = Solucao
     form = SolucaoInlineForm
     extra = 1
-    fields = ("tipo", "condicao", "ordem", "reparos", "resumo_itens")
+    fields = ("tipo", "condicao", "ordem", "reparos", "juntos", "resumo_itens")
     readonly_fields = ("resumo_itens",)
     show_change_link = True   # abre a solução para ajustar grupos e rótulos
-    verbose_name_plural = "Soluções — escolha os reparos de cada uma (para usar “+” ou rótulos, clique em “Modificar”)"
+    verbose_name_plural = "Soluções — escolha os reparos; marque “Vão juntos (+)” quando forem feitos juntos"
 
     @admin.display(description="Como fica")
     def resumo_itens(self, obj):

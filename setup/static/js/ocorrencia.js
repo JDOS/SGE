@@ -26,6 +26,7 @@
   var causasSel = new Set((INICIAL.causas || []).map(String));
   var reparosSel = new Set(Object.keys(INICIAL.reparos || {}));
   var quantidades = Object.assign({}, INICIAL.reparos || {});
+  var escolhaPacote = {};   // {solucao_id: [reparo escolhido em cada grupo]}
 
   // ---------------- 1. local: mostrar campos do novo local
   var selLocal = el('local');
@@ -75,32 +76,12 @@
     if (!problema) { atualizarTotal(); return; }
     var causas = problema.causas;
 
-    // todos os serviços do problema, com as causas e o tipo (principal/complementar) de cada um
-    var servicos = {};
-    causas.forEach(function (c) {
-      c.reparos.forEach(function (r) {
-        var id = String(r.id);
-        var s = servicos[id] || (servicos[id] = { id: id, causas: [], tipos: new Set(), rotulos: new Set() });
-        if (s.causas.indexOf(c.codigo) < 0) s.causas.push(c.codigo);
-        s.tipos.add(r.tipo + (r.condicao ? ': ' + r.condicao : ''));
-        if (r.rotulo) s.rotulos.add(r.rotulo);
-      });
-    });
-
-    // filtro: causas marcadas -> só os serviços delas; serviços marcados -> só as causas deles
-    var visServ = new Set(Object.keys(servicos));
-    if (causasSel.size) {
-      visServ = new Set();
-      causas.forEach(function (c) { if (causasSel.has(String(c.id))) reparosDaCausa(c).forEach(function (id) { visServ.add(id); }); });
-    }
-    reparosSel.forEach(function (id) { if (servicos[id]) visServ.add(id); });
-
+    // causas: se há serviços marcados, mostra só as causas que eles resolvem
     var visCausas = causas.filter(function (c) {
       if (causasSel.has(String(c.id))) return true;
       if (!reparosSel.size) return true;
       return reparosDaCausa(c).some(function (id) { return reparosSel.has(id); });
     });
-
     el('listaCausas').innerHTML = visCausas.map(function (c) {
       var id = String(c.id), marcado = causasSel.has(id);
       var qtdServ = new Set(reparosDaCausa(c)).size;
@@ -110,28 +91,117 @@
         '<small>' + qtdServ + ' serviço' + (qtdServ === 1 ? '' : 's') + '</small></span></label>';
     }).join('') || '<p class="filtro-info">Este problema não tem causas cadastradas.</p>';
 
-    var ids = Object.keys(servicos).filter(function (id) { return visServ.has(id); });
+    // serviços do problema: soluções com "+" viram um PACOTE (escolhidos juntos);
+    // as demais aparecem reparo a reparo
+    var causasVisiveisServ = causasSel.size ? causas.filter(function (c) { return causasSel.has(String(c.id)); }) : causas;
+    var individuais = {}, pacotes = {}, todosIds = new Set();
+    causas.forEach(function (c) {
+      var visivel = causasVisiveisServ.indexOf(c) >= 0;
+      (c.solucoes || []).forEach(function (sol) {
+        var tipo = sol.tipo + (sol.condicao ? ': ' + sol.condicao : '');
+        if (sol.grupos.length > 1) {
+          todosIds.add('p' + sol.id);
+          var pk = pacotes[sol.id] || (pacotes[sol.id] = { sol: sol, tipo: tipo, causas: [], visivel: false });
+          if (pk.causas.indexOf(c.codigo) < 0) pk.causas.push(c.codigo);
+          pk.visivel = pk.visivel || visivel;
+        } else {
+          sol.grupos.forEach(function (g) { g.forEach(function (it) {
+            var id = String(it.id);
+            todosIds.add('r' + id);
+            var s = individuais[id] || (individuais[id] = { id: id, causas: [], tipos: new Set(), rotulos: new Set(), visivel: false });
+            if (s.causas.indexOf(c.codigo) < 0) s.causas.push(c.codigo);
+            s.tipos.add(tipo);
+            if (it.rotulo) s.rotulos.add(it.rotulo);
+            s.visivel = s.visivel || visivel;
+          }); });
+        }
+      });
+    });
+
+    // escolha dentro de cada grupo do pacote (quando o grupo tem alternativas)
+    Object.keys(pacotes).forEach(function (sid) {
+      var esc = escolhaPacote[sid] || (escolhaPacote[sid] = []);
+      pacotes[sid].sol.grupos.forEach(function (g, i) {
+        var marcado = g.filter(function (it) { return reparosSel.has(String(it.id)); })[0];
+        if (marcado) esc[i] = String(marcado.id);
+        else if (!esc[i]) esc[i] = String(g[0].id);
+      });
+      pacotes[sid].marcado = esc.every(function (id) { return reparosSel.has(id); });
+      if (pacotes[sid].marcado) pacotes[sid].visivel = true;
+    });
+    Object.keys(individuais).forEach(function (id) { if (reparosSel.has(id)) individuais[id].visivel = true; });
+
+    var rotuloReparo = function (id) {
+      var r = REPAROS[id];
+      return (r.codigo ? '<b>' + esc(r.codigo) + '</b> – ' : '') + esc(r.nome);
+    };
+    var jaComQtd = new Set();
+    var campoQtd = function (id) {
+      var r = REPAROS[id];
+      jaComQtd.add(id);
+      return '<div class="qtd">' +
+        '<input type="text" inputmode="decimal" name="qtd_' + id + '" value="' + esc(quantidades[id] || '') +
+        '" placeholder="0,00" aria-label="Quantidade em ' + esc(r.sigla) + '">' +
+        '<span class="qtd__unid">' + esc(r.sigla) + '</span>' +
+        '<span class="qtd__custo" data-custo="' + id + '"></span></div>';
+    };
+
+    var htmlPacotes = Object.keys(pacotes).filter(function (sid) { return pacotes[sid].visivel; }).map(function (sid) {
+      var pk = pacotes[sid], sol = pk.sol, escolha = escolhaPacote[sid];
+      var titulo = sol.grupos.map(function (g) {
+        return g.map(function (it) { return rotuloReparo(String(it.id)) + (it.rotulo ? ' <em>(' + esc(it.rotulo) + ')</em>' : ''); })
+                .join(' <span class="ou">ou</span> ');
+      }).join(' <span class="mais">+</span> ');
+      var custos = sol.grupos.map(function (g, i) {
+        var r = REPAROS[escolha[i]]; return brl.format(parseFloat(r.custo)) + '/' + esc(r.sigla);
+      }).join(' + ');
+      var corpo = '';
+      if (pk.marcado) {
+        corpo = sol.grupos.map(function (g, i) {
+          var radios = g.length > 1 ? '<div class="alternativas">' + g.map(function (it) {
+            var id = String(it.id);
+            return '<label><input type="radio" name="esc_' + sid + '_' + i + '" value="' + id + '" data-pacote="' + sid +
+              '" data-grupo="' + i + '"' + (escolha[i] === id ? ' checked' : '') + '> ' +
+              esc(it.rotulo || REPAROS[id].codigo || REPAROS[id].nome) + '</label>';
+          }).join('') + '</div>' : '';
+          var id = escolha[i];
+          return '<div class="pacote__item">' + radios +
+            '<p class="pacote__nome">' + rotuloReparo(id) + '</p>' +
+            '<input type="hidden" name="reparos" value="' + id + '">' +
+            (jaComQtd.has(id) ? '' : campoQtd(id)) + '</div>';
+        }).join('');
+      }
+      return '<div class="marcar marcar--reparo marcar--pacote' + (pk.marcado ? ' marcar--sel' : '') + '">' +
+        '<label><input type="checkbox" data-pacote-check="' + sid + '"' + (pk.marcado ? ' checked' : '') + '>' +
+        '<span><span class="pacote__selo">juntos</span> ' + titulo +
+        '<small>' + esc(pk.tipo) + ' · causas ' + esc(pk.causas.join(', ')) + ' · ' + custos + '</small></span></label>' +
+        corpo + '</div>';
+    });
+
+    var ids = Object.keys(individuais).filter(function (id) { return individuais[id].visivel; });
     ids.sort(function (a, b) { return (REPAROS[a].codigo || REPAROS[a].nome).localeCompare(REPAROS[b].codigo || REPAROS[b].nome, 'pt-BR'); });
-    el('listaReparos').innerHTML = ids.map(function (id) {
-      var r = REPAROS[id], s = servicos[id], marcado = reparosSel.has(id);
-      var qtd = quantidades[id] || '';
-      return '<div class="marcar marcar--reparo' + (marcado ? ' marcar--sel' : '') + '" data-reparo="' + id + '">' +
+    var htmlIndividuais = ids.map(function (id) {
+      var r = REPAROS[id], s = individuais[id], marcado = reparosSel.has(id);
+      var qtd = '';
+      if (marcado) qtd = jaComQtd.has(id) ? '<p class="filtro-info">Quantidade informada no pacote.</p>' : campoQtd(id);
+      return '<div class="marcar marcar--reparo' + (marcado ? ' marcar--sel' : '') + '">' +
         '<label><input type="checkbox" name="reparos" value="' + id + '"' + (marcado ? ' checked' : '') + '>' +
-        '<span>' + (r.codigo ? '<b>' + esc(r.codigo) + '</b> – ' : '') + esc(r.nome) +
+        '<span>' + rotuloReparo(id) +
         (s.rotulos.size ? ' <em>(' + esc(Array.from(s.rotulos).join(', ')) + ')</em>' : '') +
         '<small>' + esc(Array.from(s.tipos).join(' · ')) + ' · causas ' + esc(s.causas.join(', ')) +
-        ' · ' + brl.format(parseFloat(r.custo)) + '/' + esc(r.sigla) + '</small></span></label>' +
-        '<div class="qtd"' + (marcado ? '' : ' hidden') + '>' +
-        '<input type="text" inputmode="decimal" name="qtd_' + id + '" value="' + esc(qtd) + '" placeholder="0,00" aria-label="Quantidade em ' + esc(r.sigla) + '">' +
-        '<span class="qtd__unid">' + esc(r.sigla) + '</span>' +
-        '<span class="qtd__custo" data-custo="' + id + '"></span></div></div>';
-    }).join('') || '<p class="filtro-info">Nenhum serviço cadastrado para as causas escolhidas.</p>';
+        ' · ' + brl.format(parseFloat(r.custo)) + '/' + esc(r.sigla) + '</small></span></label>' + qtd + '</div>';
+    });
 
-    var totalCausas = causas.length, totalServ = Object.keys(servicos).length;
+    // pacotes primeiro (os campos de quantidade deles têm prioridade)
+    el('listaReparos').innerHTML = htmlPacotes.concat(htmlIndividuais).join('') ||
+      '<p class="filtro-info">Nenhum serviço cadastrado para as causas escolhidas.</p>';
+
+    var mostrados = htmlPacotes.length + htmlIndividuais.length, totalServ = todosIds.size;
+    var totalCausas = causas.length;
     el('infoCausas').textContent = reparosSel.size && visCausas.length < totalCausas
       ? 'Mostrando ' + visCausas.length + ' de ' + totalCausas + ' (filtrado pelos serviços marcados)' : totalCausas + ' causas';
-    el('infoReparos').textContent = causasSel.size && ids.length < totalServ
-      ? 'Mostrando ' + ids.length + ' de ' + totalServ + ' (filtrado pelas causas marcadas)' : totalServ + ' serviços';
+    el('infoReparos').textContent = causasSel.size && mostrados < totalServ
+      ? 'Mostrando ' + mostrados + ' de ' + totalServ + ' (filtrado pelas causas marcadas)' : totalServ + ' opções';
 
     atualizarTotal();
   }
@@ -144,6 +214,24 @@
   });
   el('listaReparos').addEventListener('change', function (ev) {
     var cb = ev.target;
+    if (cb.dataset.pacoteCheck) {                       // marca/desmarca o pacote inteiro
+      var escolha = escolhaPacote[cb.dataset.pacoteCheck] || [];
+      escolha.forEach(function (id) { cb.checked ? reparosSel.add(id) : reparosSel.delete(id); });
+      desenharCausasReparos();
+      if (cb.checked) {
+        var primeiro = document.querySelector('input[name="qtd_' + escolha[0] + '"]');
+        if (primeiro) primeiro.focus();
+      }
+      return;
+    }
+    if (cb.type === 'radio' && cb.dataset.pacote) {     // troca a alternativa dentro do pacote
+      var lista = escolhaPacote[cb.dataset.pacote], i = +cb.dataset.grupo;
+      reparosSel.delete(lista[i]);
+      lista[i] = cb.value;
+      reparosSel.add(cb.value);
+      desenharCausasReparos();
+      return;
+    }
     if (cb.name !== 'reparos') return;
     cb.checked ? reparosSel.add(cb.value) : reparosSel.delete(cb.value);
     desenharCausasReparos();

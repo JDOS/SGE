@@ -129,3 +129,16 @@
   .etapas { width: 100%; }
   .etapas__item { flex: 1; }
 }
+
+/* pacote: reparos que vão juntos (+) */
+.marcar--pacote { border-style: dashed; }
+.marcar--pacote.marcar--sel { border-style: solid; }
+.pacote__selo { display: inline-block; background: #e8772e; color: #fff; font-size: .72rem; font-weight: 700;
+  padding: 1px 7px; border-radius: 10px; vertical-align: 1px; text-transform: uppercase; letter-spacing: .03em; }
+.mais { display: inline-block; margin: 0 4px; font-weight: 800; color: #e8772e; }
+.ou { color: var(--texto-suave); font-size: .85em; }
+.pacote__item { margin: 10px 0 0 26px; padding-top: 8px; border-top: 1px dashed var(--borda); }
+.pacote__nome { margin: 0 0 4px; font-size: .92rem; }
+.pacote__item .qtd { margin-left: 0; }
+.alternativas { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 6px; font-size: .9rem; }
+.alternativas label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }

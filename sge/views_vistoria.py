@@ -48,8 +48,9 @@ def _dados_problemas():
     for p in problemas:
         causas = []
         for c in p.causas.all():
-            reparos = []
+            reparos, solucoes = [], []
             for sol in c.solucoes.all():
+                grupos = {}
                 for item in sol.itens.all():
                     r = item.reparo
                     reparos_usados[r.pk] = r
@@ -59,7 +60,13 @@ def _dados_problemas():
                         "condicao": sol.condicao,
                         "rotulo": item.rotulo,
                     })
-            causas.append({"id": c.pk, "codigo": c.codigo, "descricao": c.descricao, "reparos": reparos})
+                    grupos.setdefault(item.grupo, []).append({"id": r.pk, "rotulo": item.rotulo})
+                solucoes.append({
+                    "id": sol.pk, "tipo": sol.get_tipo_display(), "condicao": sol.condicao,
+                    "grupos": [grupos[g] for g in sorted(grupos)],
+                })
+            causas.append({"id": c.pk, "codigo": c.codigo, "descricao": c.descricao,
+                           "reparos": reparos, "solucoes": solucoes})
         lista.append({"id": p.pk, "codigo": p.codigo, "nome": p.nome, "causas": causas})
 
     unitarios = custos_unitarios(set(reparos_usados))
