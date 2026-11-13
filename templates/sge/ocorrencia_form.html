@@ -86,18 +86,23 @@
     <section class="passo" id="passoCausas" hidden>
       <h2><span>3</span>Causas e serviços</h2>
       <p class="dica">Marcar uma causa mostra só os serviços dela; marcar um serviço mostra só as causas que ele resolve.
-        Pode marcar mais de um de cada.</p>
+        Pode marcar mais de um de cada. Os complementares (forro, reboco, pintura…) ficam na terceira coluna.</p>
 
-      <div class="duas-colunas">
+      <div class="tres-colunas">
         <div>
           <div class="coluna__cab"><h3>Causas</h3><button type="button" class="link" data-limpar="causas">limpar</button></div>
           <p class="filtro-info" id="infoCausas"></p>
           <div id="listaCausas" class="lista-marcar"></div>
         </div>
         <div>
-          <div class="coluna__cab"><h3>Serviços (reparos)</h3><button type="button" class="link" data-limpar="reparos">limpar</button></div>
+          <div class="coluna__cab"><h3>Serviços principais</h3><button type="button" class="link" data-limpar="reparos">limpar</button></div>
           <p class="filtro-info" id="infoReparos"></p>
           <div id="listaReparos" class="lista-marcar"></div>
+        </div>
+        <div>
+          <div class="coluna__cab"><h3>Complementares</h3><button type="button" class="link" data-limpar="complementares">limpar</button></div>
+          <p class="filtro-info" id="infoComplementares"></p>
+          <div id="listaComplementares" class="lista-marcar"></div>
         </div>
       </div>
     </section>

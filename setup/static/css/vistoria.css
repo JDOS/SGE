@@ -142,3 +142,14 @@
 .pacote__item .qtd { margin-left: 0; }
 .alternativas { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 6px; font-size: .9rem; }
 .alternativas label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+
+/* causas | principais | complementares */
+.tres-colunas { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr) minmax(0, 1.2fr); gap: 16px; }
+.vist:has(.tres-colunas) { max-width: 1400px; }
+@media (max-width: 1100px) {
+  .tres-colunas { grid-template-columns: 1fr 1fr; }
+  .tres-colunas > div:first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .tres-colunas { grid-template-columns: 1fr; }
+}
